@@ -33,7 +33,7 @@ export ANDROIDAPPS_EMAIL="jane@example.net"
 Next, run the binary from the source directory:
 
 ````
-./androidapps
+./androidapps runserver
 ````
 
 # TODO

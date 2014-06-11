@@ -24,19 +24,29 @@ type Page struct {
 	Content   interface{}
 }
 
-var layout, appsPage *template.Template
+var name, email string
+
+func web_env() {
+	env_name, err := getenv("ANDROIDAPPS_NAME")
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		name = env_name
+	}
+
+	env_email, err := getenv("ANDROIDAPPS_EMAIL")
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		email = env_email
+	}
+}
+
+var appsPage *template.Template
 var dev map[string]string
 
-func init() {
-	name, err := getenv("ANDROIDAPPS_NAME")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	email, err := getenv("ANDROIDAPPS_EMAIL")
-	if err != nil {
-		log.Fatal(err)
-	}
+func web_init() {
+	// parse flags
 
 	dev = map[string]string{"name": name, "email": email}
 
@@ -44,7 +54,7 @@ func init() {
 		"obfuscate": obfuscate,
 		"mailto":    mailto,
 	}
-	layout = template.New("layout.html").Funcs(funcmap)
+	layout := template.New("layout.html").Funcs(funcmap)
 	layout = template.Must(layout.ParseFiles("templates/layout.html"))
 	appsPage = template.Must(layout.Clone())
 	appsPage = template.Must(appsPage.ParseFiles("templates/apps.html"))

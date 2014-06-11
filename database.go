@@ -17,14 +17,20 @@ type App struct {
 	Version     string
 }
 
-var apps []App
+var dbfile string
 
-func init() {
-	dbfile, err := getenv("ANDROIDAPPS_DB")
+func database_env() {
+	env_dbfile, err := getenv("ANDROIDAPPS_DB")
 	if err != nil {
 		log.Fatal(err)
+	} else {
+		dbfile = env_dbfile
 	}
+}
 
+var apps []App
+
+func database_init() {
 	db, err := sql.Open("sqlite3", dbfile)
 	if err != nil {
 		log.Fatal(err)
