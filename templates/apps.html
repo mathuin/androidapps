@@ -1,0 +1,34 @@
+{{define "content"}}
+{{range .}}<div class="newentry">
+  <div class="left">
+    <div>
+      <img src="/media/icons/{{.Title}}-icon.png" class="icon">
+    </div>
+    <div class="button">
+      <a href="/media/products/{{.Title}}.apk" class="apk">Download</a>
+    </div>
+    <div>
+      <!-- the QR code is generated from the .Package attribute -->
+      <!-- <img src="/media/Qrcodefile" class="qrcode"> -->
+    </div>
+  </div>
+  <div class="right">
+    <div class="title">
+      <b>{{.Title}}</b> version {{.Version}}
+    </div>
+    <div class="desc">
+      <dl>
+	<dt><h3>Description:</h3></dt>
+	<dd>{{.Description}}</dd>
+      </dl>
+    </div>
+    <div class="recent">
+      <dl>
+	<dt><h3>Recent Changes:</h3></dt>
+	<dd>{{.Recent}}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}

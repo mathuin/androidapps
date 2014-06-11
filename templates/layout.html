@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Android™ applications by {{.Developer.name}}</title>
+    <link rel="stylesheet" href="/static/stylesheets/androidapps.css" type="text/css" media="all" />
+  </head>
+  <body id="store">
+    <div id="banner">
+      <h1>Android™ applications by {{.Developer.name}}</h1>
+    </div>
+    <div id="columns">
+      <div id="side">
+	<img src="/static/images/Android.gif"/>
+	<br />
+	<a href="/">Home</a>
+	<br />
+	<a {{mailto .Developer.email}}>{{obfuscate "Contact"}}</a>
+	<br />
+      </div>
+      <div id="main">
+	{{template "content" .Content}}
+      </div>
+    </div>
+    <div id="footer">
+      <p>
+	Portions of this page are reproduced from work created and <a href="http://code.google.com/policies.html">shared by Google</a> and used according to terms described in the <a href="http://creativecommons.org/licenses/by/3.0/">Creative Commons 3.0 Attribution License</a>.
+      </p>
+      <p>
+	Android is a trademark of Google Inc. Use of this trademark is subject to <a href="http://www.google.com/permissions/index.html">Google Permissions</a>.
+      </p>
+    </div>
+  </body>
+</html>
