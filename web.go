@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 )
 
@@ -27,14 +28,13 @@ var appsPage *template.Template
 var dev map[string]string
 
 func web_init() {
-	// parse flags
-
-	dev = map[string]string{"name": name, "email": email}
+	dev = map[string]string{"name": settings["name"].value, "email": settings["email"].value}
 
 	funcmap := template.FuncMap{
 		"obfuscate": obfuscate,
 		"mailto":    mailto,
 	}
+
 	layout := template.New("layout.html").Funcs(funcmap)
 	layout = template.Must(layout.ParseFiles("templates/layout.html"))
 	appsPage = template.Must(layout.Clone())
@@ -61,4 +61,13 @@ func ServeStatic(w http.ResponseWriter, r *http.Request) {
 
 func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
+}
+
+func runserver(args []string) {
+	http.HandleFunc("/", ServeIndex)
+	http.HandleFunc("/static/", ServeStatic)
+	http.HandleFunc("/media/", ServeMedia)
+	hostport := fmt.Sprintf("%s:%s", settings["host"].value, settings["port"].value)
+	log.Println("Starting server on", hostport)
+	log.Fatal(http.ListenAndServe(hostport, nil))
 }

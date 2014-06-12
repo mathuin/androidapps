@@ -20,7 +20,7 @@ type App struct {
 var apps []App
 
 func database_init() {
-	db, err := sql.Open("sqlite3", dbfile)
+	db, err := sql.Open("sqlite3", settings["dbfile"].value)
 	if err != nil {
 		log.Fatal(err)
 	}
