@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 )
 
@@ -24,24 +23,6 @@ type Page struct {
 	Content   interface{}
 }
 
-var name, email string
-
-func web_env() {
-	env_name, err := getenv("ANDROIDAPPS_NAME")
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		name = env_name
-	}
-
-	env_email, err := getenv("ANDROIDAPPS_EMAIL")
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		email = env_email
-	}
-}
-
 var appsPage *template.Template
 var dev map[string]string
 
@@ -58,6 +39,10 @@ func web_init() {
 	layout = template.Must(layout.ParseFiles("templates/layout.html"))
 	appsPage = template.Must(layout.Clone())
 	appsPage = template.Must(appsPage.ParseFiles("templates/apps.html"))
+}
+
+func init() {
+	init_funcs = append(init_funcs, web_init)
 }
 
 func ServeIndex(w http.ResponseWriter, r *http.Request) {

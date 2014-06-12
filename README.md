@@ -12,6 +12,12 @@ This package can be installed using go get:
 go get github.com/mathuin/androidapps
 ````
 
+Change to the appropriate directory and build the app:
+
+````
+go build
+````
+
 # Documentation
 
 ## Populating the database

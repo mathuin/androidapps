@@ -17,17 +17,6 @@ type App struct {
 	Version     string
 }
 
-var dbfile string
-
-func database_env() {
-	env_dbfile, err := getenv("ANDROIDAPPS_DB")
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		dbfile = env_dbfile
-	}
-}
-
 var apps []App
 
 func database_init() {
@@ -48,4 +37,8 @@ func database_init() {
 		rows.Scan(&a.Id, &a.Title, &a.Apkfile, &a.Iconfile, &a.Description, &a.Recent, &a.Package, &a.Version)
 		apps = append(apps, a)
 	}
+}
+
+func init() {
+	init_funcs = append(init_funcs, database_init)
 }
