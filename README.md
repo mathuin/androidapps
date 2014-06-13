@@ -39,7 +39,7 @@ export ANDROIDAPPS_EMAIL="jane@example.net"
 Sometimes environment variables just won't do.  In those cases, use flags.
 
 | Flag | Meaning |
-| ~~~~ | ~~~~~~~:|
+| ---- | ------- |
 | -dbfile | Database file |
 | -host | Host |
 | -port | Port |
@@ -49,7 +49,7 @@ Sometimes environment variables just won't do.  In those cases, use flags.
 ## Subcommands
 
 | Subcommand | Purpose | Arguments |
-| ~~~~~~~~~~ | ~~~~~~~ | ~~~~~~~~~:|
+| ---------- | ------- | --------- |
 | runserver | Run the server | |
 | export | Export the database to standard output | |
 | import | Import database in export format | |
