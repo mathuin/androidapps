@@ -298,7 +298,7 @@ func upgrade(args []string) error {
 	case true:
 		copy_files(filename, label, icon)
 		// JMT: need elegant solution for "recent" here
-		olddesc = apps[name].Description
+		olddesc := apps[name].Description
 		del_app(name)
 		add_app(name, version, label, olddesc, "Recent", 0)
 		log.Printf("The app %s was successfully upgraded from %s\n", name, filename)

@@ -15,30 +15,53 @@ type Setting struct {
 	value        string // actual value
 }
 
-func NewSetting(description, envvar string) *Setting {
-	return &Setting{description: description, envvar: envvar}
+func NewSetting(description, envvar string) (s *Setting, err error) {
+	if description == "" {
+		err = fmt.Errorf("missing description")
+	} else if envvar == "" {
+		err = fmt.Errorf("missing envvar")
+	} else {
+		s = &Setting{description: description, envvar: envvar}
+	}
+	return
 }
 
-func (s *Setting) set_value(key string) error {
+func (s *Setting) set_value(key string) (err error) {
 	s.value = os.Getenv(s.envvar)
 	if s.flag_value != "" {
 		s.value = s.flag_value
 	}
 	if s.value == "" {
-		return fmt.Errorf("no value for %s found -- set environment variable %s or use flag", key, s.envvar)
+		err = fmt.Errorf("no value for %s found -- set environment variable %s or use flag", key, s.envvar)
 	}
-	return nil
+	return
 }
 
 var settings map[string]*Setting
 
 func init() {
+	var err error
 	settings = make(map[string]*Setting)
-	settings["dbfile"] = NewSetting("Database file", "ANDROIDAPPS_DBFILE")
-	settings["host"] = NewSetting("Hostname", "ANDROIDAPPS_HOST")
-	settings["port"] = NewSetting("Port", "ANDROIDAPPS_PORT")
-	settings["name"] = NewSetting("Developer name", "ANDROIDAPPS_NAME")
-	settings["email"] = NewSetting("Developer email address", "ANDROIDAPPS_EMAIL")
+	settings["dbfile"], err = NewSetting("Database file", "ANDROIDAPPS_DBFILE")
+	if err != nil {
+		panic(err)
+	}
+	settings["host"], err = NewSetting("Hostname", "ANDROIDAPPS_HOST")
+	if err != nil {
+		panic(err)
+	}
+	settings["port"], err = NewSetting("Port", "ANDROIDAPPS_PORT")
+	if err != nil {
+		panic(err)
+	}
+	settings["name"], err = NewSetting("Developer name", "ANDROIDAPPS_NAME")
+	if err != nil {
+		panic(err)
+	}
+	settings["email"], err = NewSetting("Developer email address", "ANDROIDAPPS_EMAIL")
+	if err != nil {
+		panic(err)
+	}
 
 	// Define flags.
 	for key, s := range settings {
