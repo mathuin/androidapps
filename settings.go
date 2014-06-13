@@ -27,11 +27,15 @@ func NewSetting(description, envvar string) (s *Setting, err error) {
 }
 
 func (s *Setting) set_value(key string) (err error) {
-	s.value = os.Getenv(s.envvar)
+	if s.envvar != "" {
+		s.value = os.Getenv(s.envvar)
+	} else {
+		err = fmt.Errorf("no environment variable for %s found", key)
+	}
 	if s.flag_value != "" {
 		s.value = s.flag_value
 	}
-	if s.value == "" {
+	if s.value == "" && err == nil {
 		err = fmt.Errorf("no value for %s found -- set environment variable %s or use flag", key, s.envvar)
 	}
 	return
