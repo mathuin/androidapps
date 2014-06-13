@@ -15,7 +15,10 @@ func main() {
 	apply_settings()
 
 	var subcommands map[string]func([]string)
-	subcommands = map[string]func([]string){"runserver": runserver}
+	subcommands = map[string]func([]string){
+		"runserver": runserver,
+		"extract":   extract,
+	}
 
 	var Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
