@@ -55,10 +55,3 @@ func Test_set_value(t *testing.T) {
 		}
 	}
 }
-
-// test apply_settings
-// - create a settings variable of two with good settings
-//   silent success
-// - create a settings variable of two with one bad setting
-//   log fatal
-//   (return error?)

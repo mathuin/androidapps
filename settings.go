@@ -41,6 +41,15 @@ func (s *Setting) set_value(key string) (err error) {
 	return
 }
 
+func apply_settings() {
+	for key, s := range settings {
+		err := s.set_value(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 var settings map[string]*Setting
 
 func init() {
@@ -70,14 +79,5 @@ func init() {
 	// Define flags.
 	for key, s := range settings {
 		flag.StringVar(&s.flag_value, key, s.flag_default, s.description)
-	}
-}
-
-func apply_settings() {
-	for key, s := range settings {
-		err := s.set_value(key)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 }
