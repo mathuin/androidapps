@@ -209,7 +209,8 @@ func add(args []string) error {
 	switch app_exists(name) {
 	case false:
 		copy_files(filename, label, icon)
-		add_app(name, version, label, "Description", "Recent", 0)
+		// JMT: need elegant solution for description
+		add_app(name, version, label, "Description", "", 0)
 		log.Printf("The app %s was successfully added from %s\n", name, filename)
 	case true:
 		err = fmt.Errorf("cannot add %s: %s already exists!", filename, name)
@@ -283,5 +284,26 @@ func disable(args []string) error {
 		return fmt.Errorf("App %s was already disabled!", name)
 	}
 	log.Printf("The app %s was successfully disabled!\n", name)
+	return err
+}
+
+func upgrade(args []string) error {
+	var err error
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	filename := args[1]
+	name, version, label, icon := extract_info(filename)
+	switch app_exists(name) {
+	case true:
+		copy_files(filename, label, icon)
+		// JMT: need elegant solution for "recent" here
+		olddesc = apps[name].Description
+		del_app(name)
+		add_app(name, version, label, olddesc, "Recent", 0)
+		log.Printf("The app %s was successfully upgraded from %s\n", name, filename)
+	case false:
+		err = fmt.Errorf("App %s does not exist, use 'add' instead!", name)
+	}
 	return err
 }

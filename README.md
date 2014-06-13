@@ -51,21 +51,18 @@ Sometimes environment variables just won't do.  In those cases, use flags.
 | Subcommand | Purpose | Arguments |
 | ---------- | ------- | --------- |
 | runserver | Run the server | |
-| check (TODO) | Check for files corresponding to products | verbose?  string match? |
-| rebuild (TODO) | for each product, re-extract title, version, icon. | all? string match? |
 | list | list products in database | string match? enabled? |
 | enable | enable product (will need flag added to database) | name |
 | disable | disable product (will need flag added to database) | name |
 | add | add product to database | APK file |
 | remove | remove product from database | name force? |
-| upgrade (TODO) | upgrade product in database (upload new APK) | APK file | 
+| upgrade | upgrade product in database (upload new APK) | APK file | 
 
 At this time, very few commands are implemented.  Please be patient. :-)
 
 # TODO
 
 * Install the web stuff (static, media, templates) somewhere
-* Build tools to manipulate the database
 * Add QR code support
 
 # License
