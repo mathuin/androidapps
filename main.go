@@ -20,9 +20,12 @@ func main() {
 	var subcommands map[string]subcommand
 	subcommands = map[string]subcommand{
 		"runserver": runserver,
-		"add":       add,
-		"reset":     reset,
 		"list":      list,
+		"enable":    enable,
+		"disable":   disable,
+		"add":       add,
+		"remove":    remove,
+		"reset":     reset,
 	}
 
 	var Usage = func() {

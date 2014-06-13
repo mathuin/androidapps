@@ -86,6 +86,23 @@ func app_exists(name string) bool {
 	}
 }
 
+func is_enabled(name string) (bool, error) {
+	var enabled bool
+	var err error
+	switch app_exists(name) {
+	case true:
+		do(func(db *sql.DB) {
+			check := db.QueryRow("select enabled from apps where name = ?", name)
+			if err := check.Scan(&enabled); err != nil {
+				log.Fatal(err)
+			}
+		})
+	case false:
+		err = fmt.Errorf("app %s does not exist", name)
+	}
+	return enabled, err
+}
+
 func refresh_app(name string) {
 	switch app_exists(name) {
 	case true:
@@ -184,6 +201,9 @@ func reset(args []string) error {
 
 func add(args []string) error {
 	var err error
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
 	filename := args[1]
 	name, version, label, icon := extract_info(filename)
 	switch app_exists(name) {
@@ -197,11 +217,71 @@ func add(args []string) error {
 	return err
 }
 
+func remove(args []string) error {
+	var err error
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	switch app_exists(name) {
+	case true:
+		// JMT: currently not deleting files
+		del_app(name)
+		log.Printf("The app %s was successfully removed!\n", name)
+	case false:
+		err = fmt.Errorf("App %s does not exist!", name)
+	}
+	return err
+}
+
 func list(args []string) error {
 	var err error
 	log.Println("List of apps:")
 	for key := range apps {
 		log.Printf("%+v\n", apps[key])
 	}
+	return err
+}
+
+func enable(args []string) error {
+	var err error
+	if len(args) != 2 {
+		err = fmt.Errorf("bad args: %v", args)
+		return err
+	}
+	name := args[1]
+	check, err := is_enabled(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	switch check {
+	case false:
+		enable_app(name)
+		log.Printf("The app %s was successfully enabled!\n", name)
+	case true:
+		err = fmt.Errorf("App %s was already enabled!", name)
+	}
+	return err
+}
+
+func disable(args []string) error {
+	var err error
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	check, err := is_enabled(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	switch check {
+	case true:
+		disable_app(name)
+		log.Printf("The app %s was successfully disabled!\n", name)
+		return nil
+	case false:
+		return fmt.Errorf("App %s was already disabled!", name)
+	}
+	log.Printf("The app %s was successfully disabled!\n", name)
 	return err
 }

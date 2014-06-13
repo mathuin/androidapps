@@ -51,16 +51,14 @@ Sometimes environment variables just won't do.  In those cases, use flags.
 | Subcommand | Purpose | Arguments |
 | ---------- | ------- | --------- |
 | runserver | Run the server | |
-| export | Export the database to standard output | |
-| import | Import database in export format | |
-| check | Check for files corresponding to products | verbose?  string match? |
-| rebuild | for each product, re-extract title, version, icon. | all? string match? |
+| check (TODO) | Check for files corresponding to products | verbose?  string match? |
+| rebuild (TODO) | for each product, re-extract title, version, icon. | all? string match? |
 | list | list products in database | string match? enabled? |
-| enable | enable product (will need flag added to database) | all? one? |
-| disable | disable product (will need flag added to database) | all? one? |
+| enable | enable product (will need flag added to database) | name |
+| disable | disable product (will need flag added to database) | name |
 | add | add product to database | APK file |
-| remove | remove product from database | force? |
-| upgrade | upgrade product in database (upload new APK) | APK file |
+| remove | remove product from database | name force? |
+| upgrade (TODO) | upgrade product in database (upload new APK) | APK file | 
 
 At this time, very few commands are implemented.  Please be patient. :-)
 
