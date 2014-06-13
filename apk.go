@@ -51,14 +51,6 @@ func extract_info(filename string) (name string, version string, label string, i
 	return name, version, label, icon
 }
 
-func add(args []string) {
-	filename := args[1]
-	name, version, label, icon := extract_info(filename)
-
-	copy_files(filename, label, icon)
-	fmt.Println(name, version, label, icon)
-}
-
 func copy_files(filename string, label string, icon string) {
 	// icon's name is "media/icons/<label>.<suffix>"
 	imgsuffix := imgre.FindStringSubmatch(icon)[1]

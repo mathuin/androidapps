@@ -63,11 +63,13 @@ func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 
-func runserver(args []string) {
+func runserver(args []string) error {
+	var err error
 	http.HandleFunc("/", ServeIndex)
 	http.HandleFunc("/static/", ServeStatic)
 	http.HandleFunc("/media/", ServeMedia)
 	hostport := fmt.Sprintf("%s:%s", settings["host"].value, settings["port"].value)
 	log.Println("Starting server on", hostport)
-	log.Fatal(http.ListenAndServe(hostport, nil))
+	err = http.ListenAndServe(hostport, nil)
+	return err
 }

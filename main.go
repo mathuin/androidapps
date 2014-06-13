@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
 var init_funcs []func()
+
+type subcommand func([]string) error
 
 func main() {
 	// Parse flags!
@@ -14,10 +17,12 @@ func main() {
 
 	apply_settings()
 
-	var subcommands map[string]func([]string)
-	subcommands = map[string]func([]string){
+	var subcommands map[string]subcommand
+	subcommands = map[string]subcommand{
 		"runserver": runserver,
-		"extract":   extract,
+		"add":       add,
+		"reset":     reset,
+		"list":      list,
 	}
 
 	var Usage = func() {
@@ -25,12 +30,15 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	if subcommand := subcommands[flag.Arg(0)]; subcommand != nil {
-		// Initialize submodules, then run subcommand.
+	if command := subcommands[flag.Arg(0)]; command != nil {
+		// Initialize submodules, then run command.
 		for _, value := range init_funcs {
 			value()
 		}
-		subcommand(flag.Args())
+		err := command(flag.Args())
+		if err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		Usage()
 	}
