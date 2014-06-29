@@ -1,23 +1,48 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
-	"net/http"
+	"os"
 )
 
+var init_funcs []func()
+
+type subcommand func([]string) error
+
 func main() {
-	host, err := getenv("ANDROIDAPPS_HOST")
-	if err != nil {
-		log.Fatal(err)
-	}
-	port, err := getenv("ANDROIDAPPS_PORT")
-	if err != nil {
-		log.Fatal(err)
+	// Parse flags!
+	flag.Parse()
+
+	apply_settings()
+
+	var subcommands map[string]subcommand
+	subcommands = map[string]subcommand{
+		"runserver": runserver,
+		"list":      list,
+		"enable":    enable,
+		"disable":   disable,
+		"add":       add,
+		"remove":    remove,
+		"reset":     reset,
 	}
 
-	http.HandleFunc("/", ServeIndex)
-	http.HandleFunc("/static/", ServeStatic)
-	http.HandleFunc("/media/", ServeMedia)
-	log.Println("Starting server on host", host, "port", port)
-	log.Fatal(http.ListenAndServe(host+":"+port, nil))
+	var Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+
+	if command := subcommands[flag.Arg(0)]; command != nil {
+		// Initialize submodules, then run command.
+		for _, value := range init_funcs {
+			value()
+		}
+		err := command(flag.Args())
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		Usage()
+	}
 }

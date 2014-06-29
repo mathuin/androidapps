@@ -24,30 +24,25 @@ type Page struct {
 	Content   interface{}
 }
 
-var layout, appsPage *template.Template
+var appsPage *template.Template
 var dev map[string]string
 
-func init() {
-	name, err := getenv("ANDROIDAPPS_NAME")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	email, err := getenv("ANDROIDAPPS_EMAIL")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dev = map[string]string{"name": name, "email": email}
+func web_init() {
+	dev = map[string]string{"name": settings["name"].value, "email": settings["email"].value}
 
 	funcmap := template.FuncMap{
 		"obfuscate": obfuscate,
 		"mailto":    mailto,
 	}
-	layout = template.New("layout.html").Funcs(funcmap)
+
+	layout := template.New("layout.html").Funcs(funcmap)
 	layout = template.Must(layout.ParseFiles("templates/layout.html"))
 	appsPage = template.Must(layout.Clone())
 	appsPage = template.Must(appsPage.ParseFiles("templates/apps.html"))
+}
+
+func init() {
+	init_funcs = append(init_funcs, web_init)
 }
 
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
@@ -66,4 +61,15 @@ func ServeStatic(w http.ResponseWriter, r *http.Request) {
 
 func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
+}
+
+func runserver(args []string) error {
+	var err error
+	http.HandleFunc("/", ServeIndex)
+	http.HandleFunc("/static/", ServeStatic)
+	http.HandleFunc("/media/", ServeMedia)
+	hostport := fmt.Sprintf("%s:%s", settings["host"].value, settings["port"].value)
+	log.Println("Starting server on", hostport)
+	err = http.ListenAndServe(hostport, nil)
+	return err
 }

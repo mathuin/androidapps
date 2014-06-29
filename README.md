@@ -12,34 +12,57 @@ This package can be installed using go get:
 go get github.com/mathuin/androidapps
 ````
 
-# Documentation
-
-## Populating the database
-
-I'm currently using a database made with other tools.  I still need to write some new tools to manipulate the database as well as add or update existing applications in the store.
-
-## Running the server
-
-First, assign the appropriate environment variables:
+Change to the appropriate directory and build the app:
 
 ````
-export ANDROIDAPPS_DB="androidapps.db"
+go build
+````
+
+# Documentation
+
+## Settings
+
+### Environment variables
+
+The best/easiest way to configure this app is with environment variables.
+
+````
+export ANDROIDAPPS_DBFILE="androidapps.db"
 export ANDROIDAPPS_HOST="0.0.0.0"
 export ANDROIDAPPS_PORT="4000"
 export ANDROIDAPPS_NAME="Jane Doe"
 export ANDROIDAPPS_EMAIL="jane@example.net"
 ````
 
-Next, run the binary from the source directory:
+### Flags
 
-````
-./androidapps
-````
+Sometimes environment variables just won't do.  In those cases, use flags.
+
+| Flag | Meaning |
+| ---- | ------- |
+| -dbfile | Database file |
+| -host | Host |
+| -port | Port |
+| -name | Developer name |
+| -email | Developer email |
+
+## Subcommands
+
+| Subcommand | Purpose | Arguments |
+| ---------- | ------- | --------- |
+| runserver | Run the server | |
+| list | list products in database | string match? enabled? |
+| enable | enable product (will need flag added to database) | name |
+| disable | disable product (will need flag added to database) | name |
+| add | add product to database | APK file |
+| remove | remove product from database | name force? |
+| upgrade | upgrade product in database (upload new APK) | APK file | 
+
+At this time, very few commands are implemented.  Please be patient. :-)
 
 # TODO
 
 * Install the web stuff (static, media, templates) somewhere
-* Build tools to manipulate the database
 * Add QR code support
 
 # License
