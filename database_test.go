@@ -5,7 +5,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"os"
-	"os/exec"
+	//"os/exec"
 	"path"
 	"testing"
 )
@@ -13,19 +13,20 @@ import (
 var tempdir string
 
 var database_tests = []struct {
-	cmdargs []string
-	output  string
+	cmd    subcommand
+	args   []string
+	output string
 }{
-	{[]string{"reset"}, ""},
-	{[]string{"list"}, "No apps are in the database!\n"},
-	{[]string{"add", "./test/SimpleApp.apk"}, "The app simple.app was added!\n"},
-	{[]string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
-	{[]string{"enable", "simple.app"}, ""},
-	{[]string{"list"}, "  0: simple.app 1.0 SimpleApp 1\n"},
-	{[]string{"disable", "simple.app"}, ""},
-	{[]string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
-	{[]string{"remove", "simple.app"}, "The app simple.app was removed!\n"},
-	{[]string{"list"}, "No apps are in the database!\n"},
+	{reset, []string{"reset"}, ""},
+	{list, []string{"list"}, "No apps are in the database!\n"},
+	{add, []string{"add", "./test/SimpleApp.apk"}, "The app simple.app was added!\n"},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
+	{enable, []string{"enable", "simple.app"}, ""},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 1\n"},
+	{disable, []string{"disable", "simple.app"}, ""},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
+	{remove, []string{"remove", "simple.app"}, "The app simple.app was removed!\n"},
+	{list, []string{"list"}, "No apps are in the database!\n"},
 }
 
 func Test_database(t *testing.T) {
@@ -40,17 +41,21 @@ func Test_database(t *testing.T) {
 	os.Setenv("ANDROIDAPPS_PORT", "4000")
 	os.Setenv("ANDROIDAPPS_NAME", "Jane")
 	os.Setenv("ANDROIDAPPS_EMAIL", "jane@example.com")
-	// given this environment, let's execute a few commands!
-	path, err := exec.LookPath("./androidapps")
-	checkErr(err, "exec.LookPath failed")
+
+	dbmap = initDb()
+	defer dbmap.Db.Close()
 
 	// run through all the commands
 	for _, tt := range database_tests {
-		ttcmd := exec.Command(path, tt.cmdargs...)
-		ttout, err := ttcmd.Output()
-		checkErr(err, "ttcmd.Output() failed")
-		if string(ttout[:]) != tt.output {
-			t.Errorf("Given cmdargs=%+v, wanted \"%+v\", got \"%+v\" instead", tt.cmdargs, tt.output, string(ttout[:]))
+		tempFile, _ := ioutil.TempFile("", "stdout")
+		oldStdout := os.Stdout
+		os.Stdout = tempFile
+		tt.cmd(tt.args)
+		os.Stdout = oldStdout
+		tempFile.Close()
+		ttout, _ := ioutil.ReadFile(tempFile.Name())
+		if string(ttout) != tt.output {
+			t.Errorf("Given args=%+v, wanted \"%+v\", got \"%+v\" instead", tt.args, tt.output, string(ttout))
 		}
 	}
 }

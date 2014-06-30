@@ -45,11 +45,15 @@ func main() {
 		defer dbmap.Db.Close()
 
 		err := command(flag.Args())
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkErr(err, "command failed")
 
 	} else {
 		Usage()
+	}
+}
+
+func checkErr(err error, msg string) {
+	if err != nil {
+		log.Fatalln(msg, err)
 	}
 }

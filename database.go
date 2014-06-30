@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
 	"time"
 )
 
@@ -69,16 +68,9 @@ func initDb() *gorp.DbMap {
 	return mydbmap
 }
 
-func checkErr(err error, msg string) {
-	if err != nil {
-		log.Fatalln(msg, err)
-	}
-}
-
 // subcommands
 // reset
 func reset(args []string) error {
-	log.Printf("%+v\n", args)
 	return dbmap.TruncateTables()
 }
 
