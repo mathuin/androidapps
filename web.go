@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 )
 
@@ -51,9 +50,7 @@ func ServeIndex(w http.ResponseWriter, r *http.Request) {
 		Content:   apps,
 		Developer: dev,
 	})
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "appsPage.Execute() failed")
 }
 
 func ServeStatic(w http.ResponseWriter, r *http.Request) {
@@ -65,12 +62,10 @@ func ServeMedia(w http.ResponseWriter, r *http.Request) {
 }
 
 func runserver(args []string) error {
-	var err error
 	http.HandleFunc("/", ServeIndex)
 	http.HandleFunc("/static/", ServeStatic)
 	http.HandleFunc("/media/", ServeMedia)
 	hostport := fmt.Sprintf("%s:%s", settings["host"].value, settings["port"].value)
-	log.Println("Starting server on", hostport)
-	err = http.ListenAndServe(hostport, nil)
-	return err
+	fmt.Println("Starting server on", hostport)
+	return http.ListenAndServe(hostport, nil)
 }
