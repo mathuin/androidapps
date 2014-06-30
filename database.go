@@ -39,7 +39,6 @@ func exists(name string, cb func(a *App) error) error {
 	mya := App{}
 	err := dbmap.SelectOne(&mya, "select * from apps where name=?", name)
 	if err == nil {
-		log.Println("app exists!")
 		return cb(&mya)
 	} else {
 		return err
@@ -61,7 +60,7 @@ func initDb() *gorp.DbMap {
 
 	mydbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
 
-	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id")
+	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id").SetUniqueTogether("Name", "Ver")
 
 	// JMT: eventually migrate/create elsewhere
 	err = mydbmap.CreateTablesIfNotExists()
@@ -79,6 +78,7 @@ func checkErr(err error, msg string) {
 // subcommands
 // reset
 func reset(args []string) error {
+	log.Printf("%+v\n", args)
 	return dbmap.TruncateTables()
 }
 
@@ -94,11 +94,10 @@ func add(args []string) error {
 	}); err == sql.ErrNoRows {
 		copy_files(filename, label, icon)
 		// JMT: Description here!
-		log.Printf("in add: got this far!")
 		app := newApp(name, ver, label, "Description", "", int64(0))
-		log.Printf("in add: %+v", app)
 		ierr := dbmap.Insert(&app)
 		checkErr(ierr, "Insert failed")
+		fmt.Printf("The app %s was added!\n", name)
 		return ierr
 	} else {
 		return err
@@ -117,6 +116,7 @@ func remove(args []string) error {
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not exist!", name)
 	} else {
+		fmt.Printf("The app %s was removed!\n", name)
 		return err
 	}
 }
@@ -125,10 +125,10 @@ func remove(args []string) error {
 func list(args []string) error {
 	apps := applist()
 	if len(apps) == 0 {
-		log.Println("No apps are in the database!")
+		fmt.Println("No apps are in the database!")
 	} else {
 		for x, a := range apps {
-			log.Printf("  %d: %v\n", x, a)
+			fmt.Printf("  %d: %s %s %s %d\n", x, a.Name, a.Ver, a.Label, a.Enabled)
 		}
 	}
 	return nil
