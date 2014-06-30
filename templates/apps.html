@@ -2,10 +2,10 @@
 {{range .}}<div class="newentry">
   <div class="left">
     <div>
-      <img src="/media/icons/{{.Title}}-icon.png" class="icon">
+      <img src="/media/icons/{{.Label}}-icon.png" class="icon">
     </div>
     <div class="button">
-      <a href="/media/products/{{.Title}}.apk" class="apk">Download</a>
+      <a href="/media/products/{{.Label}}.apk" class="apk">Download</a>
     </div>
     <div>
       <!-- the QR code is generated from the .Package attribute -->
@@ -14,7 +14,7 @@
   </div>
   <div class="right">
     <div class="title">
-      <b>{{.Title}}</b> version {{.Version}}
+      <b>{{.Label}}</b> version {{.Ver}}
     </div>
     <div class="desc">
       <dl>
