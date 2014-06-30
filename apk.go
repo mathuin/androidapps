@@ -6,7 +6,6 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,14 +29,10 @@ func extract_info(filename string) (name string, version string, label string, i
 	// For now, I'm just going to run "aapt dump badging <filename>" and extract what I need.
 
 	path, err := exec.LookPath("aapt")
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkErr(err, "exec.LookPath failed")
 	aaptcmd := exec.Command(path, "dump", "badging", filename)
 	out, err := aaptcmd.Output()
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkErr(err, "aaptcmd.Output() failed")
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "package: ") {
@@ -60,32 +55,24 @@ func copy_files(filename string, label string, icon string) {
 
 	// copy icon from apk to icons directory
 	r, err := zip.OpenReader(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkErr(err, "zip.OpenReader() failed")
 
 	for _, f := range r.File {
 		if f.Name == icon {
 			rc, err := f.Open()
-			if err != nil {
-				log.Fatal(err)
-			}
-			f, err := os.Create(icondest)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if _, err := io.Copy(f, rc); err != nil {
-				f.Close()
-			}
+			checkErr(err, "f.Open() failed")
+			nf, err := os.Create(icondest)
+			checkErr(err, "os.Create() failed")
+			defer nf.Close()
+			_, err = io.Copy(nf, rc)
+			checkErr(err, "io.Copy() failed")
 		}
 	}
 	r.Close()
 
 	// copy apk to products directory
 	err = cp(apkdest, filename)
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkErr(err, "cp failed")
 }
 
 // https://gist.github.com/elazarl/5507969
@@ -94,15 +81,16 @@ func cp(dst, src string) error {
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 	// no need to check errors on read only file, we already got everything
 	// we need from the filesystem, so nothing can go wrong now.
-	defer s.Close()
 	d, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(d, s); err != nil {
-		d.Close()
+	defer d.Close()
+	_, err = io.Copy(d, s)
+	if err != nil {
 		return err
 	}
 	return d.Close()
