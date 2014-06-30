@@ -20,12 +20,13 @@ func main() {
 	var subcommands map[string]subcommand
 	subcommands = map[string]subcommand{
 		"runserver": runserver,
+		"reset":     reset,
+		"add":       add,
+		"remove":    remove,
 		"list":      list,
 		"enable":    enable,
 		"disable":   disable,
-		"add":       add,
-		"remove":    remove,
-		"reset":     reset,
+		"upgrade":   upgrade,
 	}
 
 	var Usage = func() {
@@ -38,10 +39,16 @@ func main() {
 		for _, value := range init_funcs {
 			value()
 		}
+
+		// JMT: for now this is outside the hooks due to the defer
+		dbmap = initDb()
+		defer dbmap.Db.Close()
+
 		err := command(flag.Args())
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	} else {
 		Usage()
 	}

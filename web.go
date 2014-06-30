@@ -46,6 +46,7 @@ func init() {
 }
 
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
+	apps := applist()
 	err := appsPage.Execute(w, Page{
 		Content:   apps,
 		Developer: dev,

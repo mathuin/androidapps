@@ -3,307 +3,190 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"time"
 )
 
+// JMT: should be unique on name, not sure how to do that.
 type App struct {
+	Id          int64
+	Created     int64
+	Updated     int64
 	Name        string
-	Version     string
+	Ver         string
 	Label       string
 	Description string
 	Recent      string
-	Enabled     bool
+	Enabled     int64 // 0 = false, 1 = true
 }
 
-var apps map[string]App
-
-func do(cb func(db *sql.DB)) {
-	mydb, err := sql.Open("sqlite3", settings["dbfile"].value)
-	if err != nil {
-		log.Fatal(err)
+// constructor
+func newApp(name, ver, label, description, recent string, enabled int64) App {
+	return App{
+		Created:     time.Now().UnixNano(),
+		Name:        name,
+		Ver:         ver,
+		Label:       label,
+		Description: description,
+		Recent:      recent,
+		Enabled:     enabled,
 	}
-	defer func() {
-		if err := mydb.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	cb(mydb)
 }
 
-// create and drop table
-func create_table() {
-	do(func(db *sql.DB) {
-		if _, err := db.Exec("create table if not exists apps (name varchar(100) primary key, version varchar(20), label varchar(20), description text, recent text, enabled bool)"); err != nil {
-			log.Fatal(err)
-		}
-	})
-}
-
-func drop_table() {
-	do(func(db *sql.DB) {
-		if _, err := db.Exec("drop table if exists apps"); err != nil {
-			log.Fatal(err)
-		}
-	})
-}
-
-// refresh global variable
-// all apps
-func refresh_apps() {
-	do(func(db *sql.DB) {
-		rows, err := db.Query("select name, version, label, description, recent, enabled from apps")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer rows.Close()
-		apps = nil
-		for rows.Next() {
-			var a App
-			rows.Scan(&a.Name, &a.Version, &a.Label, &a.Description, &a.Recent, &a.Enabled)
-			// JMT: WTF
-			if apps == nil {
-				apps = make(map[string]App)
-			}
-			apps[a.Name] = a
-		}
-	})
-}
-
-func app_exists(name string) bool {
-	var count int
-	do(func(db *sql.DB) {
-		check := db.QueryRow("select count(*) from apps where name = ?", name)
-		if err := check.Scan(&count); err != nil {
-			log.Fatal(err)
-		}
-	})
-	if count == 1 {
-		return true
+func exists(name string, cb func(a *App) error) error {
+	mya := App{}
+	err := dbmap.SelectOne(&mya, "select * from apps where name=?", name)
+	if err == nil {
+		log.Println("app exists!")
+		return cb(&mya)
 	} else {
-		return false
+		return err
 	}
 }
 
-func is_enabled(name string) (bool, error) {
-	var enabled bool
-	var err error
-	switch app_exists(name) {
-	case true:
-		do(func(db *sql.DB) {
-			check := db.QueryRow("select enabled from apps where name = ?", name)
-			if err := check.Scan(&enabled); err != nil {
-				log.Fatal(err)
-			}
-		})
-	case false:
-		err = fmt.Errorf("app %s does not exist", name)
+func applist() []App {
+	var apps []App
+	_, err := dbmap.Select(&apps, "select * from apps order by id")
+	checkErr(err, "Select failed")
+	return apps
+}
+
+var dbmap *gorp.DbMap
+
+func initDb() *gorp.DbMap {
+	db, err := sql.Open("sqlite3", settings["dbfile"].value)
+	checkErr(err, "sql.Open failed")
+
+	mydbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+
+	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id")
+
+	// JMT: eventually migrate/create elsewhere
+	err = mydbmap.CreateTablesIfNotExists()
+	checkErr(err, "Create tables failed")
+
+	return mydbmap
+}
+
+func checkErr(err error, msg string) {
+	if err != nil {
+		log.Fatalln(msg, err)
 	}
-	return enabled, err
-}
-
-func refresh_app(name string) {
-	switch app_exists(name) {
-	case true:
-		do(func(db *sql.DB) {
-			row := db.QueryRow("select name, version, label, description, recent, enabled from apps where name = ?", name)
-			var a App
-			if err := row.Scan(&a.Name, &a.Version, &a.Label, &a.Description, &a.Recent, &a.Enabled); err != nil {
-				log.Fatal(err)
-			}
-			// JMT: WTF
-			if apps == nil {
-				apps = make(map[string]App)
-			}
-			apps[name] = a
-		})
-	case false:
-		delete(apps, name)
-	}
-}
-
-// add record
-func add_app(name string, version string, label string, description string, recent string, enabled int) error {
-	var err error
-	switch app_exists(name) {
-	case false:
-		do(func(db *sql.DB) {
-			_, err := db.Exec("insert into apps (name, version, label, description, recent, enabled) values (?, ?, ?, ?, ?, ?)", name, version, label, description, recent, enabled)
-			if err != nil {
-				log.Fatal(err)
-			}
-		})
-		refresh_app(name)
-	case true:
-		err = fmt.Errorf("app %s already exists", name)
-	}
-	return err
-}
-
-// delete record
-func del_app(name string) {
-	do(func(db *sql.DB) {
-		_, err := db.Exec("delete from apps where name = ?", name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-	refresh_app(name)
-}
-
-// modify record -- too hard at the moment
-
-// enable record
-func enable_app(name string) {
-	do(func(db *sql.DB) {
-		_, err := db.Exec("update apps set enabled = 1 where name = ?", name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-	refresh_app(name)
-}
-
-// disable record
-func disable_app(name string) {
-	do(func(db *sql.DB) {
-		_, err := db.Exec("update apps set enabled = 0 where name = ?", name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-	refresh_app(name)
-}
-
-func database_init() {
-	create_table()
-	refresh_apps()
-}
-
-func init() {
-	if apps == nil {
-		apps = make(map[string]App)
-	}
-	init_funcs = append(init_funcs, database_init)
 }
 
 // subcommands
+// reset
 func reset(args []string) error {
-	var err error
-	for key := range apps {
-		delete(apps, key)
-	}
-	drop_table()
-	log.Println("The database was successfully reset!")
-	return err
+	return dbmap.TruncateTables()
 }
 
+// add
 func add(args []string) error {
-	var err error
 	if len(args) != 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, version, label, icon := extract_info(filename)
-	switch app_exists(name) {
-	case false:
+	name, ver, label, icon := extract_info(filename)
+	if err := exists(name, func(a *App) error {
+		return fmt.Errorf("App %s already exists!", name)
+	}); err == sql.ErrNoRows {
 		copy_files(filename, label, icon)
-		// JMT: need elegant solution for description
-		add_app(name, version, label, "Description", "", 0)
-		log.Printf("The app %s was successfully added from %s\n", name, filename)
-	case true:
-		err = fmt.Errorf("cannot add %s: %s already exists!", filename, name)
-	}
-	return err
-}
-
-func remove(args []string) error {
-	var err error
-	if len(args) != 2 {
-		return fmt.Errorf("bad args: %v", args)
-	}
-	name := args[1]
-	switch app_exists(name) {
-	case true:
-		// JMT: currently not deleting files
-		del_app(name)
-		log.Printf("The app %s was successfully removed!\n", name)
-	case false:
-		err = fmt.Errorf("App %s does not exist!", name)
-	}
-	return err
-}
-
-func list(args []string) error {
-	var err error
-	log.Println("List of apps:")
-	for key := range apps {
-		log.Printf("%+v\n", apps[key])
-	}
-	return err
-}
-
-func enable(args []string) error {
-	var err error
-	if len(args) != 2 {
-		err = fmt.Errorf("bad args: %v", args)
+		// JMT: Description here!
+		log.Printf("in add: got this far!")
+		app := newApp(name, ver, label, "Description", "", int64(0))
+		log.Printf("in add: %+v", app)
+		ierr := dbmap.Insert(&app)
+		checkErr(ierr, "Insert failed")
+		return ierr
+	} else {
 		return err
 	}
-	name := args[1]
-	check, err := is_enabled(name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	switch check {
-	case false:
-		enable_app(name)
-		log.Printf("The app %s was successfully enabled!\n", name)
-	case true:
-		err = fmt.Errorf("App %s was already enabled!", name)
-	}
-	return err
 }
 
-func disable(args []string) error {
-	var err error
+// remove
+func remove(args []string) error {
 	if len(args) != 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	check, err := is_enabled(name)
-	if err != nil {
-		log.Fatal(err)
+	if err := exists(name, func(a *App) error {
+		_, derr := dbmap.Delete(a)
+		return derr
+	}); err == sql.ErrNoRows {
+		return fmt.Errorf("App %s does not exist!", name)
+	} else {
+		return err
 	}
-	switch check {
-	case true:
-		disable_app(name)
-		log.Printf("The app %s was successfully disabled!\n", name)
-		return nil
-	case false:
-		return fmt.Errorf("App %s was already disabled!", name)
-	}
-	log.Printf("The app %s was successfully disabled!\n", name)
-	return err
 }
 
+// list
+func list(args []string) error {
+	apps := applist()
+	if len(apps) == 0 {
+		log.Println("No apps are in the database!")
+	} else {
+		for x, a := range apps {
+			log.Printf("  %d: %v\n", x, a)
+		}
+	}
+	return nil
+}
+
+// enable
+func enable(args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	return exists(name, func(a *App) error {
+		if a.Enabled == 0 {
+			a.Enabled = 1
+			_, uerr := dbmap.Update(a)
+			return uerr
+		} else {
+			return fmt.Errorf("App %s was already enabled!", name)
+		}
+	})
+}
+
+// disable
+func disable(args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	return exists(name, func(a *App) error {
+		if a.Enabled == 1 {
+			a.Enabled = 0
+			_, uerr := dbmap.Update(a)
+			return uerr
+		} else {
+			return fmt.Errorf("App %s was already disabled!", name)
+		}
+	})
+}
+
+// upgrade
 func upgrade(args []string) error {
-	var err error
 	if len(args) != 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, version, label, icon := extract_info(filename)
-	switch app_exists(name) {
-	case true:
+	name, ver, label, icon := extract_info(filename)
+	if err := exists(name, func(a *App) error {
 		copy_files(filename, label, icon)
-		// JMT: need elegant solution for "recent" here
-		olddesc := apps[name].Description
-		del_app(name)
-		add_app(name, version, label, olddesc, "Recent", 0)
-		log.Printf("The app %s was successfully upgraded from %s\n", name, filename)
-	case false:
-		err = fmt.Errorf("App %s does not exist, use 'add' instead!", name)
+		a.Updated = time.Now().UnixNano()
+		a.Ver = ver
+		a.Label = label
+		// JMT: editor here!
+		a.Recent = "Recent"
+		_, uerr := dbmap.Update(a)
+		return uerr
+	}); err == sql.ErrNoRows {
+		return fmt.Errorf("App %s does not already exist!", name)
+	} else {
+		return err
 	}
-	return err
 }
