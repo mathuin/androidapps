@@ -136,6 +136,9 @@ func enable(args []string) error {
 		if a.Enabled == 0 {
 			a.Enabled = 1
 			_, uerr := dbmap.Update(a)
+			if uerr == nil {
+				fmt.Printf("The app %s was enabled!\n", name)
+			}
 			return uerr
 		} else {
 			return fmt.Errorf("App %s was already enabled!", name)
@@ -153,6 +156,9 @@ func disable(args []string) error {
 		if a.Enabled == 1 {
 			a.Enabled = 0
 			_, uerr := dbmap.Update(a)
+			if uerr == nil {
+				fmt.Printf("The app %s was disabled!\n", name)
+			}
 			return uerr
 		} else {
 			return fmt.Errorf("App %s was already disabled!", name)
