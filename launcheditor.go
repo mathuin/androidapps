@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 // not tested -- should be fun. :-(
@@ -49,15 +48,15 @@ func createfile(text string) string {
 }
 
 func retrievestring(filename string) string {
+	var linebuf bytes.Buffer
 	buf, err := ioutil.ReadFile(filename)
 	checkErr(err, "ioutil.ReadFile failed")
-	lines := []string{}
 	for _, line := range bytes.Split(buf, line_terminator) {
 		if !bytes.HasPrefix(line, comment_header) {
-			lines = append(lines, string(line))
+			linebuf.Write(append(line, line_terminator...))
 		}
 	}
-	return strings.Join(lines, " ")
+	return linebuf.String()
 }
 
 // formatting stuff
