@@ -71,6 +71,9 @@ func initDb() *gorp.DbMap {
 // subcommands
 // reset
 func reset(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("bad args: %v", args)
+	}
 	return dbmap.TruncateTables()
 }
 
@@ -115,6 +118,10 @@ func remove(args []string) error {
 
 // list
 func list(args []string) error {
+	// JMT: consider using regular expressions or globs here
+	if len(args) != 1 {
+		return fmt.Errorf("bad args: %v", args)
+	}
 	apps := applist()
 	if len(apps) == 0 {
 		fmt.Println("No apps are in the database!")
@@ -181,6 +188,9 @@ func upgrade(args []string) error {
 		// JMT: editor here!
 		a.Recent = "Recent"
 		_, uerr := dbmap.Update(a)
+		if uerr == nil {
+			fmt.Printf("The app %s was upgraded!\n", name)
+		}
 		return uerr
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not already exist!", name)

@@ -41,7 +41,7 @@ func (s *Setting) set_value(key string) (err error) {
 	return
 }
 
-func apply_settings() {
+func apply_settings(settings map[string]*Setting) {
 	for key, s := range settings {
 		err := s.set_value(key)
 		if err != nil {
@@ -56,25 +56,15 @@ func init() {
 	var err error
 	settings = make(map[string]*Setting)
 	settings["dbfile"], err = NewSetting("Database file", "ANDROIDAPPS_DBFILE")
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "setting dbfile failed")
 	settings["host"], err = NewSetting("Hostname", "ANDROIDAPPS_HOST")
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "setting host failed")
 	settings["port"], err = NewSetting("Port", "ANDROIDAPPS_PORT")
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "setting port failed")
 	settings["name"], err = NewSetting("Developer name", "ANDROIDAPPS_NAME")
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "setting name failed")
 	settings["email"], err = NewSetting("Developer email address", "ANDROIDAPPS_EMAIL")
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err, "setting email failed")
 
 	// Define flags.
 	for key, s := range settings {

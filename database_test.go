@@ -2,11 +2,12 @@ package main
 
 import (
 	_ "database/sql"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"os"
-	//"os/exec"
 	"path"
+	"reflect"
 	"testing"
 )
 
@@ -15,18 +16,41 @@ var tempdir string
 var database_tests = []struct {
 	cmd    subcommand
 	args   []string
-	output string
+	stdout string
+	stderr string
 }{
-	{reset, []string{"reset"}, ""},
-	{list, []string{"list"}, "No apps are in the database!\n"},
-	{add, []string{"add", "./test/SimpleApp.apk"}, "The app simple.app was added!\n"},
-	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
-	{enable, []string{"enable", "simple.app"}, "The app simple.app was enabled!\n"},
-	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 1\n"},
-	{disable, []string{"disable", "simple.app"}, "The app simple.app was disabled!\n"},
-	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n"},
-	{remove, []string{"remove", "simple.app"}, "The app simple.app was removed!\n"},
-	{list, []string{"list"}, "No apps are in the database!\n"},
+	// regular sequence of events
+	{reset, []string{"reset"}, "", ""},
+	{list, []string{"list"}, "No apps are in the database!\n", ""},
+	{upgrade, []string{"upgrade", "./test/SimpleApp.apk"}, "", "App simple.app does not already exist!"},
+	{add, []string{"add", "./test/SimpleApp.apk"}, "The app simple.app was added!\n", ""},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n", ""},
+	{add, []string{"add", "./test/SimpleApp.apk"}, "", "App simple.app already exists!"},
+	// JMT: this needs to be fixed
+	{upgrade, []string{"upgrade", "./test/SimpleApp.apk"}, "The app simple.app was upgraded!\n", ""},
+	{enable, []string{"enable", "simple.app"}, "The app simple.app was enabled!\n", ""},
+	{enable, []string{"enable", "simple.app"}, "", "App simple.app was already enabled!"},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 1\n", ""},
+	{disable, []string{"disable", "simple.app"}, "The app simple.app was disabled!\n", ""},
+	{disable, []string{"disable", "simple.app"}, "", "App simple.app was already disabled!"},
+	{list, []string{"list"}, "  0: simple.app 1.0 SimpleApp 0\n", ""},
+	{remove, []string{"remove", "simple.app"}, "The app simple.app was removed!\n", ""},
+	{list, []string{"list"}, "No apps are in the database!\n", ""},
+	{remove, []string{"remove", "simple.app"}, "", "App simple.app does not exist!"},
+
+	// bad arguments
+	{reset, []string{"reset", "pie"}, "", "bad args: [reset pie]"},
+	{add, []string{"add"}, "", "bad args: [add]"},
+	{add, []string{"add", "./test/SimpleApp.apk", "pie"}, "", "bad args: [add ./test/SimpleApp.apk pie]"},
+	{remove, []string{"remove"}, "", "bad args: [remove]"},
+	{remove, []string{"remove", "simple.app", "pie"}, "", "bad args: [remove simple.app pie]"},
+	{list, []string{"list", "pie"}, "", "bad args: [list pie]"},
+	{enable, []string{"enable"}, "", "bad args: [enable]"},
+	{enable, []string{"enable", "simple.app", "pie"}, "", "bad args: [enable simple.app pie]"},
+	{disable, []string{"disable"}, "", "bad args: [disable]"},
+	{disable, []string{"disable", "simple.app", "pie"}, "", "bad args: [disable simple.app pie]"},
+	{upgrade, []string{"upgrade"}, "", "bad args: [upgrade]"},
+	{upgrade, []string{"upgrade", "./test/SimpleApp.apk", "pie"}, "", "bad args: [upgrade ./test/SimpleApp.apk pie]"},
 }
 
 func Test_database(t *testing.T) {
@@ -47,15 +71,19 @@ func Test_database(t *testing.T) {
 
 	// run through all the commands
 	for _, tt := range database_tests {
-		tempFile, _ := ioutil.TempFile("", "stdout")
+		var experr error
+		if tt.stderr != "" {
+			experr = fmt.Errorf(tt.stderr)
+		}
+		tempFileOut, _ := ioutil.TempFile("", "stdout")
 		oldStdout := os.Stdout
-		os.Stdout = tempFile
-		tt.cmd(tt.args)
+		os.Stdout = tempFileOut
+		acterr := tt.cmd(tt.args)
 		os.Stdout = oldStdout
-		tempFile.Close()
-		ttout, _ := ioutil.ReadFile(tempFile.Name())
-		if string(ttout) != tt.output {
-			t.Errorf("Given args=%+v, wanted \"%+v\", got \"%+v\" instead", tt.args, tt.output, string(ttout))
+		tempFileOut.Close()
+		ttout, _ := ioutil.ReadFile(tempFileOut.Name())
+		if string(ttout) != tt.stdout || !reflect.DeepEqual(acterr, experr) {
+			t.Errorf("Given args=%+v, wanted stdout \"%+v\" and stderr \"%+v\", got stdout \"%+v\" and stderr \"%+v\" instead", tt.args, tt.stdout, experr, string(ttout), acterr)
 		}
 	}
 }
