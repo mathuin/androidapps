@@ -94,7 +94,7 @@ func add(args []string) error {
 	if err := exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
-		copy_files(filename, label, icon)
+		copy_files(filename, name, label, icon)
 		// JMT: Description here!
 		app := newApp(name, ver, label, "Description", "", int64(0))
 		ierr := dbmap.Insert(&app)
@@ -189,7 +189,7 @@ func upgrade(args []string) error {
 	filename := args[1]
 	name, ver, label, icon := extract_info(filename)
 	if err := exists(name, func(a *App) error {
-		copy_files(filename, label, icon)
+		copy_files(filename, name, label, icon)
 		a.Updated = time.Now().UnixNano()
 		a.Ver = ver
 		a.Label = label
