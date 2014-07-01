@@ -46,7 +46,7 @@ func extract_info(filename string) (name string, version string, label string, i
 	return name, version, label, icon
 }
 
-func copy_files(filename string, label string, icon string) {
+func copy_files(filename string, name string, label string, icon string) {
 	// icon's name is "media/icons/<label>.<suffix>"
 	imgsuffix := imgre.FindStringSubmatch(icon)[1]
 	icondest := fmt.Sprintf("media/icons/%s.%s", label, imgsuffix)
@@ -73,6 +73,11 @@ func copy_files(filename string, label string, icon string) {
 	// copy apk to products directory
 	err = cp(apkdest, filename)
 	checkErr(err, "cp failed")
+
+	// generate QR code in target directory.
+	qrdest := fmt.Sprintf("media/qrcodes/%s.%s", label, imgsuffix)
+	err = make_qrcode(name, qrdest)
+	checkErr(err, "make_qrcode() failed")
 }
 
 // https://gist.github.com/elazarl/5507969
