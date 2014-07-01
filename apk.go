@@ -23,16 +23,26 @@ func init() {
 	imgre = regexp.MustCompile(".*\\.([a-z]*)$")
 }
 
-func extract_info(filename string) (name string, version string, label string, icon string) {
+func extract_info(filename string) (name string, version string, label string, icon string, err error) {
 	// The correct way to extract this information requires writing a Go package which disassembles APKs.
 	// That's hard.
 	// For now, I'm just going to run "aapt dump badging <filename>" and extract what I need.
 
+	// is this a real file?
+	f, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	f.Close()
 	path, err := exec.LookPath("aapt")
-	checkErr(err, "exec.LookPath failed")
+	if err != nil {
+		return
+	}
 	aaptcmd := exec.Command(path, "dump", "badging", filename)
 	out, err := aaptcmd.Output()
-	checkErr(err, "aaptcmd.Output() failed")
+	if err != nil {
+		return
+	}
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "package: ") {
@@ -43,7 +53,7 @@ func extract_info(filename string) (name string, version string, label string, i
 			icon = iconre.FindStringSubmatch(line)[1]
 		}
 	}
-	return name, version, label, icon
+	return
 }
 
 func copy_files(filename string, name string, label string, icon string) {

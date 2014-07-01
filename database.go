@@ -96,12 +96,13 @@ func add(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	// JMT: check that argument is actually a file?
-	name, ver, label, icon := extract_info(filename)
+	name, ver, label, icon, err := extract_info(filename)
+	if err != nil {
+		return err
+	}
 	if err := exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
-		// JMT: this same logic belongs with upgrade eventually
 		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
 		descPtr := addflags.String("desc", "", "Description")
 
@@ -225,13 +226,16 @@ func upgrade(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, ver, label, icon := extract_info(filename)
+	name, ver, label, icon, err := extract_info(filename)
+	if err != nil {
+		return err
+	}
 	if err := exists(name, func(a *App) error {
 		copy_files(filename, name, label, icon)
 		a.Updated = time.Now().UnixNano()
 		a.Ver = ver
 		a.Label = label
-		// JMT: updating recent changes is in 'modify' now.
+		// JMT: new design means new stuff
 		_, uerr := dbmap.Update(a)
 		if uerr == nil {
 			fmt.Printf("The app %s was upgraded!\n", name)
