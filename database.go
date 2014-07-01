@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
@@ -84,21 +85,45 @@ func reset(args []string) error {
 	return dbmap.TruncateTables()
 }
 
+const (
+	add_header string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+)
+
 // add
 func add(args []string) error {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
+	// JMT: check that argument is actually a file?
 	name, ver, label, icon := extract_info(filename)
 	if err := exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
-		copy_files(filename, name, label, icon)
-		// JMT: Description here!
-		app := newApp(name, ver, label, "Description", "", int64(0))
+		// JMT: this same logic belongs with upgrade eventually
+		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+		descPtr := addflags.String("desc", "", "Description")
+
+		addflags.Parse(args[2:])
+
+		if len(addflags.Args()) > 0 {
+			return fmt.Errorf("bad args: %v", args)
+		}
+
+		var desc string
+		if *descPtr != "" {
+			desc = *descPtr
+		} else {
+			// JMT: this code not tested!
+			fmt.Printf("Launching editor for description...")
+			fpath := createfile(add_header)
+			launcheditor(fpath)
+			desc = retrievestring(fpath)
+		}
+		app := newApp(name, ver, label, desc, "", int64(0))
 		ierr := dbmap.Insert(&app)
 		checkErr(ierr, "Insert failed")
+		copy_files(filename, name, label, icon)
 		fmt.Printf("The app %s was added!\n", name)
 		return ierr
 	} else {
@@ -148,6 +173,8 @@ func enable(args []string) error {
 	}
 	name := args[1]
 	return exists(name, func(a *App) error {
+		// JMT: check for non-zero description before enabling
+		// (upgrade could auto-zero recent changes and disable)
 		if a.Enabled == 0 {
 			a.Enabled = 1
 			_, uerr := dbmap.Update(a)
@@ -193,8 +220,7 @@ func upgrade(args []string) error {
 		a.Updated = time.Now().UnixNano()
 		a.Ver = ver
 		a.Label = label
-		// JMT: editor here!
-		a.Recent = "Recent"
+		// JMT: updating recent changes is in 'modify' now.
 		_, uerr := dbmap.Update(a)
 		if uerr == nil {
 			fmt.Printf("The app %s was upgraded!\n", name)
@@ -205,4 +231,29 @@ func upgrade(args []string) error {
 	} else {
 		return err
 	}
+}
+
+// modify
+func modify(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	// step 1: --desc "string" will set the description
+	// step 2: --recent "string" will set the recent changes
+	// step 3: editor!
+	return exists(name, func(a *App) error {
+		// JMT: check for non-zero description before enabling
+		// (upgrade could auto-zero recent changes and disable)
+		if a.Enabled == 0 {
+			a.Enabled = 1
+			_, uerr := dbmap.Update(a)
+			if uerr == nil {
+				fmt.Printf("The app %s was enabled!\n", name)
+			}
+			return uerr
+		} else {
+			return fmt.Errorf("App %s was already enabled!", name)
+		}
+	})
 }
