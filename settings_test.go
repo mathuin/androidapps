@@ -76,7 +76,7 @@ func Test_apply_settings(t *testing.T) {
 		apply_settings(tt.settings)
 		for _, s := range tt.settings {
 			if s.value != tt.checkval {
-				t.Errorf("Dammit!")
+				t.Errorf("Given s=%+#v and envval=%+#v, wanted %+#v, got %+#v", s, tt.envval, tt.checkval, s.value)
 			}
 		}
 	}
