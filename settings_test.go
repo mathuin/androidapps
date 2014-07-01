@@ -55,3 +55,29 @@ func Test_set_value(t *testing.T) {
 		}
 	}
 }
+
+var apply_settings_tests = []struct {
+	settings map[string]*Setting
+	envval   string
+	checkval string
+}{
+	{map[string]*Setting{"test": &Setting{envvar: "TEST"}}, "new", "new"},
+}
+
+func Test_apply_settings(t *testing.T) {
+	for _, tt := range apply_settings_tests {
+		for _, s := range tt.settings {
+			if s.envvar != "" {
+				oldenv := os.Getenv(s.envvar)
+				os.Setenv(s.envvar, tt.envval)
+				defer os.Setenv(s.envvar, oldenv)
+			}
+		}
+		apply_settings(tt.settings)
+		for _, s := range tt.settings {
+			if s.value != tt.checkval {
+				t.Errorf("Dammit!")
+			}
+		}
+	}
+}

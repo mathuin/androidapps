@@ -31,17 +31,23 @@ func init() {
 	}
 }
 
-func exec_cmd(cmd subcommand, args []string) error {
-	// Initialize submodules, then run command.
-	for _, value := range init_funcs {
-		value()
+func exec_cmd(args []string) error {
+	if command := subcommands[args[0]]; command != nil {
+		// Initialize submodules, then run command.
+		for _, value := range init_funcs {
+			value()
+		}
+
+		// JMT: for now this is outside the hooks due to the defer
+		dbmap = initDb()
+		defer dbmap.Db.Close()
+
+		err := command(args)
+		checkErr(err, "command failed")
+		return nil
+	} else {
+		return fmt.Errorf("bad args: ", args)
 	}
-
-	// JMT: for now this is outside the hooks due to the defer
-	dbmap = initDb()
-	defer dbmap.Db.Close()
-
-	return cmd(args)
 }
 
 func main() {
@@ -50,10 +56,7 @@ func main() {
 
 	apply_settings(settings)
 
-	if command := subcommands[flag.Arg(0)]; command != nil {
-		err := exec_cmd(command, flag.Args())
-		checkErr(err, "command failed")
-	} else {
+	if err := exec_cmd(flag.Args()); err != nil {
 		Usage()
 	}
 }

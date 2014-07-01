@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -44,9 +43,7 @@ func (s *Setting) set_value(key string) (err error) {
 func apply_settings(settings map[string]*Setting) {
 	for key, s := range settings {
 		err := s.set_value(key)
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkErr(err, "set_value failed")
 	}
 }
 
