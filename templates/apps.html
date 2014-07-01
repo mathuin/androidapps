@@ -1,4 +1,5 @@
 {{define "content"}}
+{{if .}}
 {{range .}}<div class="newentry">
   <div class="left">
     <div>
@@ -29,6 +30,10 @@
       </dl>
     </div>
   </div>
+</div>
+{{end}}
+{{else}}<div class="noappshere">
+<h2>Sorry!  The store is currently empty.  Please come back again soon!</h2>
 </div>
 {{end}}
 {{end}}

@@ -13,6 +13,7 @@ type subcommand func([]string) error
 
 var subcommands map[string]subcommand
 
+// not tested
 func Usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
@@ -50,6 +51,7 @@ func exec_cmd(args []string) error {
 	}
 }
 
+// not tested
 func main() {
 	// Parse flags!
 	flag.Parse()
@@ -61,6 +63,7 @@ func main() {
 	}
 }
 
+// not tested
 func checkErr(err error, msg string) {
 	if err != nil {
 		log.Fatalln(msg, err)

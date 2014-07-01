@@ -44,8 +44,10 @@ func init() {
 	init_funcs = append(init_funcs, web_init)
 }
 
+// not tested
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
-	apps := applist()
+	// only enabled apps here
+	apps := applist(true)
 	err := appsPage.Execute(w, Page{
 		Content:   apps,
 		Developer: dev,
@@ -53,14 +55,17 @@ func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	checkErr(err, "appsPage.Execute() failed")
 }
 
+// not tested
 func ServeStatic(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 
+// not tested
 func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 
+// not tested
 func runserver(args []string) error {
 	http.HandleFunc("/", ServeIndex)
 	http.HandleFunc("/static/", ServeStatic)

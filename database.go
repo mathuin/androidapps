@@ -44,9 +44,16 @@ func exists(name string, cb func(a *App) error) error {
 	}
 }
 
-func applist() []App {
+// properly testing this requires good database fixtures
+func applist(enabled bool) []App {
 	var apps []App
-	_, err := dbmap.Select(&apps, "select * from apps order by id")
+	var selstr string
+	if enabled == true {
+		selstr = "select * from apps where enabled=1 order by id"
+	} else {
+		selstr = "select * from apps order by id"
+	}
+	_, err := dbmap.Select(&apps, selstr)
 	checkErr(err, "Select failed")
 	return apps
 }
@@ -122,7 +129,8 @@ func list(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("bad args: %v", args)
 	}
-	apps := applist()
+	// all apps
+	apps := applist(false)
 	if len(apps) == 0 {
 		fmt.Println("No apps are in the database!")
 	} else {
