@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // not tested -- should be fun. :-(
@@ -13,6 +15,7 @@ func launcheditor(filename string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Launching editor for description...")
 	cmd := exec.Command(path, filename)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -34,10 +37,12 @@ func init() {
 	space = []byte{' '}
 }
 
-func createfile(text string) string {
+func createfile(header string, content string) string {
+	var text string
 	f, err := ioutil.TempFile("", "")
 	checkErr(err, "ioutil.TempFile() failed")
 	defer f.Close()
+	text = strings.Join([]string{header, content}, "\n")
 	if text != "" {
 		for _, text := range split(text, 72) {
 			line := [][]byte{comment_header, []byte(text), line_terminator}
@@ -53,7 +58,7 @@ func retrievestring(filename string) string {
 	checkErr(err, "ioutil.ReadFile failed")
 	for _, line := range bytes.Split(buf, line_terminator) {
 		if !bytes.HasPrefix(line, comment_header) {
-			linebuf.Write(append(line, line_terminator...))
+			linebuf.Write(append(line))
 		}
 	}
 	return linebuf.String()
