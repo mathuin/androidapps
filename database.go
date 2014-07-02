@@ -117,8 +117,7 @@ func add(args []string) error {
 			desc = *descPtr
 		} else {
 			// JMT: this code not tested!
-			fmt.Printf("Launching editor for description...")
-			fpath := createfile(add_header)
+			fpath := createfile(add_header, "")
 			launcheditor(fpath)
 			desc = retrievestring(fpath)
 		}
@@ -258,17 +257,29 @@ func modify(args []string) error {
 	// step 2: --recent "string" will set the recent changes
 	// step 3: editor!
 	return exists(name, func(a *App) error {
-		// JMT: check for non-zero description before enabling
-		// (upgrade could auto-zero recent changes and disable)
-		if a.Enabled == 0 {
-			a.Enabled = 1
-			_, uerr := dbmap.Update(a)
-			if uerr == nil {
-				fmt.Printf("The app %s was enabled!\n", name)
-			}
-			return uerr
-		} else {
-			return fmt.Errorf("App %s was already enabled!", name)
+		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+		descPtr := addflags.String("desc", "", "Description")
+
+		addflags.Parse(args[2:])
+
+		if len(addflags.Args()) > 0 {
+			return fmt.Errorf("bad args: %v", args)
 		}
+
+		var desc string
+		if *descPtr != "" {
+			desc = *descPtr
+		} else {
+			// JMT: this code not tested!
+			fpath := createfile(add_header, a.Description)
+			launcheditor(fpath)
+			desc = retrievestring(fpath)
+		}
+		a.Description = desc
+		_, uerr := dbmap.Update(a)
+		if uerr == nil {
+			fmt.Printf("The description for the app %s was modified successfully.\n", name)
+		}
+		return uerr
 	})
 }
