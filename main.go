@@ -29,6 +29,7 @@ func init() {
 		"enable":    enable,
 		"disable":   disable,
 		"upgrade":   upgrade,
+		"modify":    modify,
 	}
 }
 

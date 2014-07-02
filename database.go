@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
+	"strings"
 	"time"
 )
 
@@ -84,21 +86,45 @@ func reset(args []string) error {
 	return dbmap.TruncateTables()
 }
 
+const (
+	add_header string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+)
+
 // add
 func add(args []string) error {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, ver, label, icon := extract_info(filename)
+	name, ver, label, icon, err := extract_info(filename)
+	if err != nil {
+		return err
+	}
 	if err := exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
-		copy_files(filename, name, label, icon)
-		// JMT: Description here!
-		app := newApp(name, ver, label, "Description", "", int64(0))
+		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+		descPtr := addflags.String("desc", "", "Description")
+
+		addflags.Parse(args[2:])
+
+		if len(addflags.Args()) > 0 {
+			return fmt.Errorf("bad args: %v", args)
+		}
+
+		var desc string
+		if *descPtr != "" {
+			desc = *descPtr
+		} else {
+			// JMT: this code not tested!
+			fpath := createfile(add_header, "")
+			launcheditor(fpath)
+			desc = retrievestring(fpath)
+		}
+		app := newApp(name, ver, label, desc, "", int64(0))
 		ierr := dbmap.Insert(&app)
 		checkErr(ierr, "Insert failed")
+		copy_files(filename, name, label, icon)
 		fmt.Printf("The app %s was added!\n", name)
 		return ierr
 	} else {
@@ -134,8 +160,17 @@ func list(args []string) error {
 	if len(apps) == 0 {
 		fmt.Println("No apps are in the database!")
 	} else {
-		for x, a := range apps {
-			fmt.Printf("  %d: %s %s %s %d\n", x, a.Name, a.Ver, a.Label, a.Enabled)
+		for _, a := range apps {
+			var enabled string
+			if a.Enabled == 1 {
+				enabled = "enabled"
+			} else {
+				enabled = "not enabled"
+			}
+			fmt.Printf("Name:\n\t%s (%s)\nVersion:\n\t%s\nLabel:\n\t%s\nDescription:\n", a.Name, enabled, a.Ver, a.Label)
+			for _, line := range strings.Split(a.Description, string(line_terminator)) {
+				fmt.Printf("\t%s\n", line)
+			}
 		}
 	}
 	return nil
@@ -149,6 +184,9 @@ func enable(args []string) error {
 	name := args[1]
 	return exists(name, func(a *App) error {
 		if a.Enabled == 0 {
+			if a.Description == "" {
+				return fmt.Errorf("App %s has no description!", name)
+			}
 			a.Enabled = 1
 			_, uerr := dbmap.Update(a)
 			if uerr == nil {
@@ -187,14 +225,16 @@ func upgrade(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, ver, label, icon := extract_info(filename)
+	name, ver, label, icon, err := extract_info(filename)
+	if err != nil {
+		return err
+	}
 	if err := exists(name, func(a *App) error {
 		copy_files(filename, name, label, icon)
 		a.Updated = time.Now().UnixNano()
 		a.Ver = ver
 		a.Label = label
-		// JMT: editor here!
-		a.Recent = "Recent"
+		// JMT: new design means new stuff
 		_, uerr := dbmap.Update(a)
 		if uerr == nil {
 			fmt.Printf("The app %s was upgraded!\n", name)
@@ -205,4 +245,41 @@ func upgrade(args []string) error {
 	} else {
 		return err
 	}
+}
+
+// modify
+func modify(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+	name := args[1]
+	// step 1: --desc "string" will set the description
+	// step 2: --recent "string" will set the recent changes
+	// step 3: editor!
+	return exists(name, func(a *App) error {
+		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+		descPtr := addflags.String("desc", "", "Description")
+
+		addflags.Parse(args[2:])
+
+		if len(addflags.Args()) > 0 {
+			return fmt.Errorf("bad args: %v", args)
+		}
+
+		var desc string
+		if *descPtr != "" {
+			desc = *descPtr
+		} else {
+			// JMT: this code not tested!
+			fpath := createfile(add_header, a.Description)
+			launcheditor(fpath)
+			desc = retrievestring(fpath)
+		}
+		a.Description = desc
+		_, uerr := dbmap.Update(a)
+		if uerr == nil {
+			fmt.Printf("The description for the app %s was modified successfully.\n", name)
+		}
+		return uerr
+	})
 }
