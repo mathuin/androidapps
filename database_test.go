@@ -26,7 +26,7 @@ var database_tests = []struct {
 	{add, []string{"add", "./test/SimpleApp.apk", "-desc=pie"}, "The app simple.app was added!\n", ""},
 	{add, []string{"add", "./test/SimpleApp.apk", "-desc=pie"}, "", "App simple.app already exists!"},
 	// JMT: this needs to be fixed
-	{upgrade, []string{"upgrade", "./test/SimpleApp.apk"}, "The app simple.app was upgraded!\n", ""},
+	{upgrade, []string{"upgrade", "./test/SimpleApp.apk"}, "", "Cannot upgrade to existing version!"},
 	{enable, []string{"enable", "simple.app"}, "The app simple.app was enabled!\n", ""},
 	{enable, []string{"enable", "simple.app"}, "", "App simple.app was already enabled!"},
 	{list, []string{"list"}, "Name:\n\tsimple.app (enabled)\nVersion:\n\t1.0\nLabel:\n\tSimpleApp\nDescription:\n\tpie\n", ""},

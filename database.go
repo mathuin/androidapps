@@ -19,26 +19,75 @@ type App struct {
 	Ver         string
 	Label       string
 	Description string
-	Recent      string
 	Enabled     int64 // 0 = false, 1 = true
 }
 
+type Change struct {
+	Id      int64
+	Created int64
+	Updated int64
+	Name    string
+	Ver     string
+	Recent  string
+}
+
 // constructor
-func newApp(name, ver, label, description, recent string, enabled int64) App {
+func newApp(name, ver, label, description string) App {
 	return App{
 		Created:     time.Now().UnixNano(),
 		Name:        name,
 		Ver:         ver,
 		Label:       label,
 		Description: description,
-		Recent:      recent,
-		Enabled:     enabled,
 	}
 }
 
-func exists(name string, cb func(a *App) error) error {
-	mya := App{}
-	err := dbmap.SelectOne(&mya, "select * from apps where name=?", name)
+func newChange(name, ver, recent string) Change {
+	return Change{
+		Created: time.Now().UnixNano(),
+		Name:    name,
+		Ver:     ver,
+		Recent:  recent,
+	}
+}
+
+func changes(name string) ([]Change, error) {
+	if err := app_exists(name, func(a *App) error {
+		return nil
+	}); err == nil {
+		// testing the simpler idea
+		var changes []Change
+		_, err := dbmap.Select(&changes, "select * from changes where name=?", name)
+		checkErr(err, "Select failed")
+		return changes, nil
+	} else {
+		return nil, fmt.Errorf("App %s does not exist!", name)
+	}
+}
+
+func change(name, ver string) (myc Change, err error) {
+	myc = Change{}
+	err = dbmap.SelectOne(&myc, "select * from changes where name=? and ver=?", name, ver)
+	return
+}
+
+func change_exists(name, ver string, cb func(c *Change) error) error {
+	myc, err := change(name, ver)
+	if err == nil {
+		return cb(&myc)
+	} else {
+		return err
+	}
+}
+
+func app(name string) (mya App, err error) {
+	mya = App{}
+	err = dbmap.SelectOne(&mya, "select * from apps where name=?", name)
+	return
+}
+
+func app_exists(name string, cb func(a *App) error) error {
+	mya, err := app(name)
 	if err == nil {
 		return cb(&mya)
 	} else {
@@ -68,7 +117,9 @@ func initDb() *gorp.DbMap {
 
 	mydbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
 
-	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id").SetUniqueTogether("Name", "Ver")
+	// JMT: want names to be unique, no clue how
+	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id")
+	mydbmap.AddTableWithName(Change{}, "changes").SetKeys(true, "Id").SetUniqueTogether("Name", "Ver")
 
 	// JMT: eventually migrate/create elsewhere
 	err = mydbmap.CreateTablesIfNotExists()
@@ -87,7 +138,8 @@ func reset(args []string) error {
 }
 
 const (
-	add_header string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+	add_header     string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+	upgrade_header string = `Please describe the recent changes to the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
 )
 
 // add
@@ -100,7 +152,7 @@ func add(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := exists(name, func(a *App) error {
+	if err := app_exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
 		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
@@ -121,7 +173,7 @@ func add(args []string) error {
 			launcheditor(fpath)
 			desc = retrievestring(fpath)
 		}
-		app := newApp(name, ver, label, desc, "", int64(0))
+		app := newApp(name, ver, label, desc)
 		ierr := dbmap.Insert(&app)
 		checkErr(ierr, "Insert failed")
 		copy_files(filename, name, label, icon)
@@ -138,7 +190,7 @@ func remove(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	if err := exists(name, func(a *App) error {
+	if err := app_exists(name, func(a *App) error {
 		_, derr := dbmap.Delete(a)
 		return derr
 	}); err == sql.ErrNoRows {
@@ -182,7 +234,7 @@ func enable(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	return exists(name, func(a *App) error {
+	return app_exists(name, func(a *App) error {
 		if a.Enabled == 0 {
 			if a.Description == "" {
 				return fmt.Errorf("App %s has no description!", name)
@@ -205,7 +257,7 @@ func disable(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	return exists(name, func(a *App) error {
+	return app_exists(name, func(a *App) error {
 		if a.Enabled == 1 {
 			a.Enabled = 0
 			_, uerr := dbmap.Update(a)
@@ -229,17 +281,49 @@ func upgrade(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := exists(name, func(a *App) error {
-		copy_files(filename, name, label, icon)
-		a.Updated = time.Now().UnixNano()
-		a.Ver = ver
-		a.Label = label
-		// JMT: new design means new stuff
-		_, uerr := dbmap.Update(a)
-		if uerr == nil {
-			fmt.Printf("The app %s was upgraded!\n", name)
+	if err := app_exists(name, func(a *App) error {
+		if ver == a.Ver {
+			return fmt.Errorf("Cannot upgrade to existing version!")
 		}
-		return uerr
+		if err := change_exists(name, ver, func(c *Change) error {
+			return fmt.Errorf("Cannot upgrade to existing version!")
+		}); err == nil {
+			addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+			recentPtr := addflags.String("recent", "", "Recent changes")
+
+			addflags.Parse(args[2:])
+
+			if len(addflags.Args()) > 0 {
+				return fmt.Errorf("bad args: %v", args)
+			}
+
+			var recent string
+			if *recentPtr != "" {
+				recent = *recentPtr
+			} else {
+				fpath := createfile(upgrade_header, "")
+				launcheditor(fpath)
+				recent = retrievestring(fpath)
+			}
+
+			// begin transaction
+			c := newChange(name, ver, recent)
+			ierr := dbmap.Insert(c)
+			checkErr(ierr, "Insert failed")
+
+			copy_files(filename, name, label, icon)
+			a.Updated = time.Now().UnixNano()
+			a.Ver = ver
+			a.Label = label
+			_, uerr := dbmap.Update(a)
+			if uerr == nil {
+				fmt.Printf("The app %s was upgraded!\n", name)
+			}
+			// end transaction
+			return uerr
+		} else {
+			return err
+		}
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not already exist!", name)
 	} else {
@@ -253,33 +337,60 @@ func modify(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	// step 1: --desc "string" will set the description
-	// step 2: --recent "string" will set the recent changes
-	// step 3: editor!
-	return exists(name, func(a *App) error {
+	return app_exists(name, func(a *App) error {
 		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
 		descPtr := addflags.String("desc", "", "Description")
+		recentPtr := addflags.String("recent", "", "Recent changes")
 
 		addflags.Parse(args[2:])
 
-		if len(addflags.Args()) > 0 {
+		// JMT: if someone uses -recent on a description update (or
+		// -desc on a recent changes update) they get the editor.  do
+		// I care?
+
+		remargs := addflags.Args()
+		switch len(remargs) {
+		case 0:
+			// description
+			var desc string
+			if *descPtr != "" {
+				desc = *descPtr
+			} else {
+				// JMT: this code not tested!
+				fpath := createfile(add_header, a.Description)
+				launcheditor(fpath)
+				desc = retrievestring(fpath)
+			}
+			a.Description = desc
+			_, uerr := dbmap.Update(a)
+			if uerr == nil {
+				fmt.Printf("The description for the app %s was modified successfully.\n", name)
+			}
+			return uerr
+		case 1:
+			// version
+			ver := remargs[0]
+			if err := change_exists(name, ver, func(c *Change) error {
+				if *recentPtr != "" {
+					c.Recent = *recentPtr
+				} else {
+					fpath := createfile(upgrade_header, c.Recent)
+					launcheditor(fpath)
+					c.Recent = retrievestring(fpath)
+				}
+
+				// begin transaction
+				c.Updated = time.Now().UnixNano()
+				_, uerr := dbmap.Update(c)
+				checkErr(uerr, "Update failed")
+				return nil
+			}); err != nil {
+				return err
+			}
+		default:
+			// error
 			return fmt.Errorf("bad args: %v", args)
 		}
-
-		var desc string
-		if *descPtr != "" {
-			desc = *descPtr
-		} else {
-			// JMT: this code not tested!
-			fpath := createfile(add_header, a.Description)
-			launcheditor(fpath)
-			desc = retrievestring(fpath)
-		}
-		a.Description = desc
-		_, uerr := dbmap.Update(a)
-		if uerr == nil {
-			fmt.Printf("The description for the app %s was modified successfully.\n", name)
-		}
-		return uerr
+		return nil
 	})
 }
