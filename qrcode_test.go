@@ -21,12 +21,12 @@ func Test_make_qrcode(t *testing.T) {
 		checkErr(err, "TempDir failed")
 	}
 	qrdest := path.Join(tempdir, "test.png")
-	err = make_qrcode("simple.app", qrdest)
+	err = make_qrcode("org.twilley.android.firstapp", qrdest)
 	if err != nil {
 		t.Errorf("Dammit!")
 	}
 
-	expf, err := os.Open("./test/SimpleApp-qrcode.png")
+	expf, err := os.Open("./test/FirstApp-qrcode.png")
 	checkErr(err, "os.Open() failed")
 	expimg, _, err := image.Decode(expf)
 	checkErr(err, "image.Decode(expf) failed")

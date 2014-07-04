@@ -15,7 +15,7 @@ var extract_info_tests = []struct {
 	name, version, label, icon, filename string
 	err                                  error
 }{
-	{"simple.app", "1.0", "SimpleApp", "res/drawable-mdpi/icon.png", "./test/SimpleApp.apk", nil},
+	{"org.twilley.android.firstapp", "1.0", "FirstApp", "res/drawable-mdpi-v4/ic_launcher.png", "./test/FirstApp10.apk", nil},
 }
 
 func Test_extract_info(t *testing.T) {
