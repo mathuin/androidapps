@@ -1,0 +1,40 @@
+{{ define "changes" }}
+{{ if . }}
+{{ $lendot := len . }}
+{{ if eq $lendot 1 }}
+{{ $one := index . 0 }}
+    <div class="desc">
+      <dl>
+	<dt><h3>Recent Changes:</h3></dt>
+	<dd>
+	  <ul>
+	    <li>{{ $one.Recent }}</li>
+	  </ul>
+	</dd>
+      </dl>
+    </div>
+{{ else }}
+    <div class="desc">
+      <dl>
+	<dt><h3>Recent Changes:</h3></dt>
+	<dd>
+	  <ul>
+	    <!-- JMT: need to reverse order these! -->
+	    <!-- Probably best done in the go code -->
+	    {{ range $index, $element := . }}
+	    {{ if eq $index 1 }}
+	    <div id="foo-old" style="display: none;">
+	    {{ end }}
+	    <li>{{ .Recent }}</li>
+	    {{ if eq $index $lendot }}
+	    </div>
+	    {{ end }}
+	    {{ end }}
+	  </ul>
+	  <a id="foo-link" href="javascript:toggle('foo-old', 'foo-link');">Display old changes</a>
+	</dd>
+      </dl>
+    </div>
+{{ end }}
+{{ end }}
+{{ end }}
