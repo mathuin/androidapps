@@ -23,7 +23,7 @@ type Page struct {
 	Content   interface{}
 }
 
-var appsPage *template.Template
+var layout *template.Template
 var dev map[string]string
 
 func web_init() {
@@ -32,12 +32,12 @@ func web_init() {
 	funcmap := template.FuncMap{
 		"obfuscate": obfuscate,
 		"mailto":    mailto,
+		"changes":   changes,
 	}
 
-	layout := template.New("layout.html").Funcs(funcmap)
-	layout = template.Must(layout.ParseFiles("templates/layout.html"))
-	appsPage = template.Must(layout.Clone())
-	appsPage = template.Must(appsPage.ParseFiles("templates/apps.html"))
+	var err error
+	layout, err = template.New("layout.html").Funcs(funcmap).ParseFiles("templates/layout.html", "templates/apps.html", "templates/changes.html")
+	checkErr(err, "template.ParseFiles() failed")
 }
 
 func init() {
@@ -48,11 +48,11 @@ func init() {
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	// only enabled apps here
 	apps := applist(true)
-	err := appsPage.Execute(w, Page{
+	err := layout.Execute(w, Page{
 		Content:   apps,
 		Developer: dev,
 	})
-	checkErr(err, "appsPage.Execute() failed")
+	checkErr(err, "layout.Execute() failed")
 }
 
 // not tested

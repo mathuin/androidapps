@@ -22,12 +22,7 @@
 	<dd>{{.Description}}</dd>
       </dl>
     </div>
-    <div class="recent">
-      <dl>
-	<dt><h3>Recent Changes:</h3></dt>
-	<dd>{{.Recent}}</dd>
-      </dl>
-    </div>
+    {{template "changes" .Changes}}
   </div>
 </div>
 {{end}}

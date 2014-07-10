@@ -95,6 +95,13 @@ func app_exists(name string, cb func(a *App) error) error {
 	}
 }
 
+// crazy idea
+func (a *App) Changes() (changes []Change) {
+	_, err := dbmap.Select(&changes, "select * from changes where name=?", a.Name)
+	checkErr(err, "Select failed")
+	return
+}
+
 // properly testing this requires good database fixtures
 func applist(enabled bool) []App {
 	var apps []App
@@ -152,23 +159,23 @@ func add(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+	descPtr := addflags.String("desc", "", "Description")
+
+	addflags.Parse(args[2:])
+
+	if len(addflags.Args()) > 0 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+
 	if err := app_exists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
-		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
-		descPtr := addflags.String("desc", "", "Description")
-
-		addflags.Parse(args[2:])
-
-		if len(addflags.Args()) > 0 {
-			return fmt.Errorf("bad args: %v", args)
-		}
-
 		var desc string
 		if *descPtr != "" {
 			desc = *descPtr
 		} else {
-			// JMT: this code not tested!
 			fpath := createfile(add_header, "")
 			launcheditor(fpath)
 			desc = retrievestring(fpath)
@@ -273,7 +280,7 @@ func disable(args []string) error {
 
 // upgrade
 func upgrade(args []string) error {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
@@ -281,54 +288,62 @@ func upgrade(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := app_exists(name, func(a *App) error {
+
+	addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
+	recentPtr := addflags.String("recent", "", "Recent changes")
+
+	addflags.Parse(args[2:])
+
+	if len(addflags.Args()) > 0 {
+		return fmt.Errorf("bad args: %v", args)
+	}
+
+	if err = app_exists(name, func(a *App) error {
 		if ver == a.Ver {
+			if len(args) == 3 {
+				fmt.Println("made it this far 1")
+			}
 			return fmt.Errorf("Cannot upgrade to existing version!")
-		}
-		if err := change_exists(name, ver, func(c *Change) error {
-			return fmt.Errorf("Cannot upgrade to existing version!")
-		}); err == nil {
-			addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
-			recentPtr := addflags.String("recent", "", "Recent changes")
-
-			addflags.Parse(args[2:])
-
-			if len(addflags.Args()) > 0 {
-				return fmt.Errorf("bad args: %v", args)
-			}
-
-			var recent string
-			if *recentPtr != "" {
-				recent = *recentPtr
-			} else {
-				fpath := createfile(upgrade_header, "")
-				launcheditor(fpath)
-				recent = retrievestring(fpath)
-			}
-
-			// begin transaction
-			c := newChange(name, ver, recent)
-			ierr := dbmap.Insert(c)
-			checkErr(ierr, "Insert failed")
-
-			copy_files(filename, name, label, icon)
-			a.Updated = time.Now().UnixNano()
-			a.Ver = ver
-			a.Label = label
-			_, uerr := dbmap.Update(a)
-			if uerr == nil {
-				fmt.Printf("The app %s was upgraded!\n", name)
-			}
-			// end transaction
-			return uerr
 		} else {
-			return err
+			if err := change_exists(name, ver, func(c *Change) error {
+				if len(args) == 3 {
+					fmt.Println("made it this far 2")
+				}
+				return fmt.Errorf("Cannot upgrade to existing version!")
+			}); err == sql.ErrNoRows {
+				// if app exists and is different version and no change exists, upgrade
+				var recent string
+				if *recentPtr != "" {
+					recent = *recentPtr
+				} else {
+					fpath := createfile(upgrade_header, "")
+					launcheditor(fpath)
+					recent = retrievestring(fpath)
+				}
+
+				// begin transaction
+				c := newChange(name, ver, recent)
+				ierr := dbmap.Insert(&c)
+				checkErr(ierr, "Insert failed")
+
+				copy_files(filename, name, label, icon)
+				a.Updated = time.Now().UnixNano()
+				a.Ver = ver
+				a.Label = label
+				_, uerr := dbmap.Update(a)
+				// end transaction
+
+				return uerr
+			} else {
+				return err
+			}
 		}
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not already exist!", name)
-	} else {
-		return err
+	} else if err == nil {
+		fmt.Printf("The app %s was upgraded!\n", name)
 	}
+	return err
 }
 
 // modify
