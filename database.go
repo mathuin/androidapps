@@ -57,7 +57,7 @@ func changes(name string) ([]Change, error) {
 	}); err == nil {
 		// testing the simpler idea
 		var changes []Change
-		_, err := dbmap.Select(&changes, "select * from changes where name=?", name)
+		_, err := dbmap.Select(&changes, "select * from changes where name=? order by updated desc, created desc", name)
 		checkErr(err, "Select failed")
 		return changes, nil
 	} else {
@@ -107,9 +107,9 @@ func applist(enabled bool) []App {
 	var apps []App
 	var selstr string
 	if enabled == true {
-		selstr = "select * from apps where enabled=1 order by id"
+		selstr = "select * from apps where enabled=1 order by updated desc, created desc"
 	} else {
-		selstr = "select * from apps order by id"
+		selstr = "select * from apps order by updated desc, created desc"
 	}
 	_, err := dbmap.Select(&apps, selstr)
 	checkErr(err, "Select failed")

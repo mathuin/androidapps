@@ -1,6 +1,7 @@
 {{define "content"}}
 {{if .}}
-{{range .}}<div class="newentry">
+{{range .}}
+  <div class="newentry">
   <div class="left">
     <div>
       <img src="/media/icons/{{.Label}}.png" class="icon">
@@ -17,10 +18,8 @@
       <b>{{.Label}}</b> version {{.Ver}}
     </div>
     <div class="desc">
-      <dl>
-	<dt><h3>Description:</h3></dt>
-	<dd>{{.Description}}</dd>
-      </dl>
+      <h3>Description:</h3>
+      <p>{{.Description}}</p>
     </div>
     {{template "changes" .Changes}}
   </div>

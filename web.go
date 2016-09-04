@@ -18,6 +18,10 @@ func mailto(s string) template.HTMLAttr {
 	return template.HTMLAttr(`href="` + obfuscate("mailto:"+s) + `"`)
 }
 
+func subtract(a, b int) int {
+	return a - b
+}
+
 type Page struct {
 	Developer map[string]string
 	Content   interface{}
@@ -33,10 +37,11 @@ func web_init() {
 		"obfuscate": obfuscate,
 		"mailto":    mailto,
 		"changes":   changes,
+		"subtract":  subtract,
 	}
 
 	var err error
-	layout, err = template.New("layout.html").Funcs(funcmap).ParseFiles("templates/layout.html", "templates/apps.html", "templates/changes.html")
+	layout, err = template.New("layout.html").Funcs(funcmap).ParseFiles("templates/layout.html", "templates/apps.html", "templates/changes.html", "templates/change.html")
 	checkErr(err, "template.ParseFiles() failed")
 }
 

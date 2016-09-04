@@ -1,40 +1,24 @@
 {{ define "changes" }}
 {{ if . }}
+    <div class="desc">
+      <h3>Recent Changes:</h3>
 {{ $lendot := len . }}
-{{ if eq $lendot 1 }}
+{{ $last := subtract $lendot 1}}
+{{ if eq $last 0 }}
 {{ $one := index . 0 }}
-    <div class="desc">
-      <dl>
-	<dt><h3>Recent Changes:</h3></dt>
-	<dd>
-	  <ul>
-	    <li>{{ $one.Recent }}</li>
-	  </ul>
-	</dd>
-      </dl>
-    </div>
+{{ template "change" $one }}
 {{ else }}
-    <div class="desc">
-      <dl>
-	<dt><h3>Recent Changes:</h3></dt>
-	<dd>
-	  <ul>
-	    <!-- JMT: need to reverse order these! -->
-	    <!-- Probably best done in the go code -->
-	    {{ range $index, $element := . }}
-	    {{ if eq $index 1 }}
-	    <div id="foo-old" style="display: none;">
-	    {{ end }}
-	    <li>{{ .Recent }}</li>
-	    {{ if eq $index $lendot }}
-	    </div>
-	    {{ end }}
-	    {{ end }}
-	  </ul>
-	  <a id="foo-link" href="javascript:toggle('foo-old', 'foo-link');">Display old changes</a>
-	</dd>
-      </dl>
-    </div>
+      {{ range $index, $element := . }}
+      {{ if eq $index 1 }}
+      <div id="meh-old" style="display: none;">
+      {{ end }}
+      {{ template "change" $element }}
+      {{ if eq $index $last }}
+      </div>
+      {{ end }}
+      {{ end }}
+      <a id="meh-link" href="javascript:toggle('meh-old', 'meh-link');">Display old changes</a>
 {{ end }}
+    </div>
 {{ end }}
 {{ end }}
