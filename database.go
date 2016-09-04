@@ -4,15 +4,17 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/coopernurse/gorp"
-	_ "github.com/mattn/go-sqlite3"
 	"strings"
 	"time"
+
+	"github.com/coopernurse/gorp"
+	_ "github.com/mattn/go-sqlite3"
 )
 
+// App represents the mobile application.
 // JMT: should be unique on name, not sure how to do that.
 type App struct {
-	Id          int64
+	ID          int64
 	Created     int64
 	Updated     int64
 	Name        string
@@ -22,8 +24,9 @@ type App struct {
 	Enabled     int64 // 0 = false, 1 = true
 }
 
+// Change represents the latest change in the app.
 type Change struct {
-	Id      int64
+	ID      int64
 	Created int64
 	Updated int64
 	Name    string
@@ -52,7 +55,7 @@ func newChange(name, ver, recent string) Change {
 }
 
 func changes(name string) ([]Change, error) {
-	if err := app_exists(name, func(a *App) error {
+	if err := appExists(name, func(a *App) error {
 		return nil
 	}); err == nil {
 		// testing the simpler idea
@@ -60,9 +63,8 @@ func changes(name string) ([]Change, error) {
 		_, err := dbmap.Select(&changes, "select * from changes where name=? order by updated desc, created desc", name)
 		checkErr(err, "Select failed")
 		return changes, nil
-	} else {
-		return nil, fmt.Errorf("App %s does not exist!", name)
 	}
+	return nil, fmt.Errorf("App %s does not exist!", name)
 }
 
 func change(name, ver string) (myc Change, err error) {
@@ -71,13 +73,12 @@ func change(name, ver string) (myc Change, err error) {
 	return
 }
 
-func change_exists(name, ver string, cb func(c *Change) error) error {
+func changeExists(name, ver string, cb func(c *Change) error) error {
 	myc, err := change(name, ver)
 	if err == nil {
 		return cb(&myc)
-	} else {
-		return err
 	}
+	return err
 }
 
 func app(name string) (mya App, err error) {
@@ -86,16 +87,15 @@ func app(name string) (mya App, err error) {
 	return
 }
 
-func app_exists(name string, cb func(a *App) error) error {
+func appExists(name string, cb func(a *App) error) error {
 	mya, err := app(name)
 	if err == nil {
 		return cb(&mya)
-	} else {
-		return err
 	}
+	return err
 }
 
-// crazy idea
+// Changes is a crazy idea
 func (a *App) Changes() (changes []Change) {
 	_, err := dbmap.Select(&changes, "select * from changes where name=?", a.Name)
 	checkErr(err, "Select failed")
@@ -125,8 +125,8 @@ func initDb() *gorp.DbMap {
 	mydbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
 
 	// JMT: want names to be unique, no clue how
-	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "Id")
-	mydbmap.AddTableWithName(Change{}, "changes").SetKeys(true, "Id").SetUniqueTogether("Name", "Ver")
+	mydbmap.AddTableWithName(App{}, "apps").SetKeys(true, "ID")
+	mydbmap.AddTableWithName(Change{}, "changes").SetKeys(true, "ID").SetUniqueTogether("Name", "Ver")
 
 	// JMT: eventually migrate/create elsewhere
 	err = mydbmap.CreateTablesIfNotExists()
@@ -145,8 +145,8 @@ func reset(args []string) error {
 }
 
 const (
-	add_header     string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
-	upgrade_header string = `Please describe the recent changes to the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+	addHeader     string = `Please enter a description of the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
+	upgradeHeader string = `Please describe the recent changes to the Android application.  Remember, this is what the customer will see when determining whether or not to install the software!`
 )
 
 // add
@@ -155,7 +155,7 @@ func add(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, ver, label, icon, err := extract_info(filename)
+	name, ver, label, icon, err := extractInfo(filename)
 	if err != nil {
 		return err
 	}
@@ -169,43 +169,41 @@ func add(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 
-	if err := app_exists(name, func(a *App) error {
+	if err = appExists(name, func(a *App) error {
 		return fmt.Errorf("App %s already exists!", name)
 	}); err == sql.ErrNoRows {
 		var desc string
 		if *descPtr != "" {
 			desc = *descPtr
 		} else {
-			fpath := createfile(add_header, "")
+			fpath := createfile(addHeader, "")
 			launcheditor(fpath)
 			desc = retrievestring(fpath)
 		}
 		app := newApp(name, ver, label, desc)
 		ierr := dbmap.Insert(&app)
 		checkErr(ierr, "Insert failed")
-		copy_files(filename, name, label, icon)
+		copyFiles(filename, name, label, icon, err)
 		fmt.Printf("The app %s was added!\n", name)
 		return ierr
-	} else {
-		return err
 	}
+	return err
 }
 
 // remove
-func remove(args []string) error {
+func remove(args []string) (err error) {
 	if len(args) != 2 {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	if err := app_exists(name, func(a *App) error {
+	if err = appExists(name, func(a *App) error {
 		_, derr := dbmap.Delete(a)
 		return derr
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not exist!", name)
-	} else {
-		fmt.Printf("The app %s was removed!\n", name)
-		return err
 	}
+	fmt.Printf("The app %s was removed!\n", name)
+	return err
 }
 
 // list
@@ -227,7 +225,7 @@ func list(args []string) error {
 				enabled = "not enabled"
 			}
 			fmt.Printf("Name:\n\t%s (%s)\nVersion:\n\t%s\nLabel:\n\t%s\nDescription:\n", a.Name, enabled, a.Ver, a.Label)
-			for _, line := range strings.Split(a.Description, string(line_terminator)) {
+			for _, line := range strings.Split(a.Description, string(lineTerminator)) {
 				fmt.Printf("\t%s\n", line)
 			}
 		}
@@ -241,7 +239,7 @@ func enable(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	return app_exists(name, func(a *App) error {
+	return appExists(name, func(a *App) error {
 		if a.Enabled == 0 {
 			if a.Description == "" {
 				return fmt.Errorf("App %s has no description!", name)
@@ -252,9 +250,8 @@ func enable(args []string) error {
 				fmt.Printf("The app %s was enabled!\n", name)
 			}
 			return uerr
-		} else {
-			return fmt.Errorf("App %s was already enabled!", name)
 		}
+		return fmt.Errorf("App %s was already enabled!", name)
 	})
 }
 
@@ -264,7 +261,7 @@ func disable(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	return app_exists(name, func(a *App) error {
+	return appExists(name, func(a *App) error {
 		if a.Enabled == 1 {
 			a.Enabled = 0
 			_, uerr := dbmap.Update(a)
@@ -272,9 +269,8 @@ func disable(args []string) error {
 				fmt.Printf("The app %s was disabled!\n", name)
 			}
 			return uerr
-		} else {
-			return fmt.Errorf("App %s was already disabled!", name)
 		}
+		return fmt.Errorf("App %s was already disabled!", name)
 	})
 }
 
@@ -284,7 +280,7 @@ func upgrade(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	filename := args[1]
-	name, ver, label, icon, err := extract_info(filename)
+	name, ver, label, icon, err := extractInfo(filename)
 	if err != nil {
 		return err
 	}
@@ -298,46 +294,44 @@ func upgrade(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 
-	if err = app_exists(name, func(a *App) error {
+	if err = appExists(name, func(a *App) error {
 		if ver == a.Ver {
 			if len(args) == 3 {
 				fmt.Println("made it this far 1")
 			}
 			return fmt.Errorf("Cannot upgrade to existing version!")
-		} else {
-			if err := change_exists(name, ver, func(c *Change) error {
-				if len(args) == 3 {
-					fmt.Println("made it this far 2")
-				}
-				return fmt.Errorf("Cannot upgrade to existing version!")
-			}); err == sql.ErrNoRows {
-				// if app exists and is different version and no change exists, upgrade
-				var recent string
-				if *recentPtr != "" {
-					recent = *recentPtr
-				} else {
-					fpath := createfile(upgrade_header, "")
-					launcheditor(fpath)
-					recent = retrievestring(fpath)
-				}
-
-				// begin transaction
-				c := newChange(name, ver, recent)
-				ierr := dbmap.Insert(&c)
-				checkErr(ierr, "Insert failed")
-
-				copy_files(filename, name, label, icon)
-				a.Updated = time.Now().UnixNano()
-				a.Ver = ver
-				a.Label = label
-				_, uerr := dbmap.Update(a)
-				// end transaction
-
-				return uerr
-			} else {
-				return err
-			}
 		}
+		if err = changeExists(name, ver, func(c *Change) error {
+			if len(args) == 3 {
+				fmt.Println("made it this far 2")
+			}
+			return fmt.Errorf("Cannot upgrade to existing version!")
+		}); err == sql.ErrNoRows {
+			// if app exists and is different version and no change exists, upgrade
+			var recent string
+			if *recentPtr != "" {
+				recent = *recentPtr
+			} else {
+				fpath := createfile(upgradeHeader, "")
+				launcheditor(fpath)
+				recent = retrievestring(fpath)
+			}
+
+			// begin transaction
+			c := newChange(name, ver, recent)
+			ierr := dbmap.Insert(&c)
+			checkErr(ierr, "Insert failed")
+
+			copyFiles(filename, name, label, icon, err)
+			a.Updated = time.Now().UnixNano()
+			a.Ver = ver
+			a.Label = label
+			_, uerr := dbmap.Update(a)
+			// end transaction
+
+			return uerr
+		}
+		return err
 	}); err == sql.ErrNoRows {
 		return fmt.Errorf("App %s does not already exist!", name)
 	} else if err == nil {
@@ -352,7 +346,7 @@ func modify(args []string) error {
 		return fmt.Errorf("bad args: %v", args)
 	}
 	name := args[1]
-	return app_exists(name, func(a *App) error {
+	return appExists(name, func(a *App) error {
 		addflags := flag.NewFlagSet(args[0], flag.ExitOnError)
 		descPtr := addflags.String("desc", "", "Description")
 		recentPtr := addflags.String("recent", "", "Recent changes")
@@ -372,7 +366,7 @@ func modify(args []string) error {
 				desc = *descPtr
 			} else {
 				// JMT: this code not tested!
-				fpath := createfile(add_header, a.Description)
+				fpath := createfile(addHeader, a.Description)
 				launcheditor(fpath)
 				desc = retrievestring(fpath)
 			}
@@ -385,11 +379,11 @@ func modify(args []string) error {
 		case 1:
 			// version
 			ver := remargs[0]
-			if err := change_exists(name, ver, func(c *Change) error {
+			if err := changeExists(name, ver, func(c *Change) error {
 				if *recentPtr != "" {
 					c.Recent = *recentPtr
 				} else {
-					fpath := createfile(upgrade_header, c.Recent)
+					fpath := createfile(upgradeHeader, c.Recent)
 					launcheditor(fpath)
 					c.Recent = retrievestring(fpath)
 				}

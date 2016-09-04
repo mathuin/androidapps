@@ -14,14 +14,14 @@ import (
 // build a qr code with string 'market://search?q=pname:simple.app'
 // save as png with name "whatever.png"
 
-func Test_make_qrcode(t *testing.T) {
+func Test_makeQRCode(t *testing.T) {
 	var err error
 	if tempdir == "" {
 		tempdir, err = ioutil.TempDir("", "")
 		checkErr(err, "TempDir failed")
 	}
 	qrdest := path.Join(tempdir, "test.png")
-	err = make_qrcode("org.twilley.android.firstapp", qrdest)
+	err = makeQRCode("org.twilley.android.firstapp", qrdest)
 	if err != nil {
 		t.Errorf("Dammit!")
 	}

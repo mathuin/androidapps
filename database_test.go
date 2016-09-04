@@ -3,17 +3,18 @@ package main
 import (
 	_ "database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
 	"testing"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var tempdir string
 
-var database_tests = []struct {
+var databaseTests = []struct {
 	cmd    subcommand
 	args   []string
 	stdout string
@@ -69,7 +70,7 @@ func Test_database(t *testing.T) {
 	defer dbmap.Db.Close()
 
 	// run through all the commands
-	for _, tt := range database_tests {
+	for _, tt := range databaseTests {
 		var experr error
 		if tt.stderr != "" {
 			experr = fmt.Errorf(tt.stderr)

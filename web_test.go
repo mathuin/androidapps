@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var obfuscate_tests = []struct {
+var obfuscateTests = []struct {
 	input  string
 	output template.HTML
 }{
@@ -13,7 +13,7 @@ var obfuscate_tests = []struct {
 }
 
 func Test_obfuscate(t *testing.T) {
-	for _, tt := range obfuscate_tests {
+	for _, tt := range obfuscateTests {
 		output := obfuscate(tt.input)
 		if output != tt.output {
 			t.Errorf("Given %+#v, wanted %+#v, got %+#v", tt.input, tt.output, output)
@@ -21,7 +21,7 @@ func Test_obfuscate(t *testing.T) {
 	}
 }
 
-var mailto_tests = []struct {
+var mailtoTests = []struct {
 	input  string
 	output template.HTMLAttr
 }{
@@ -29,7 +29,7 @@ var mailto_tests = []struct {
 }
 
 func Test_mailto(t *testing.T) {
-	for _, tt := range mailto_tests {
+	for _, tt := range mailtoTests {
 		output := mailto(tt.input)
 		if output != tt.output {
 			t.Errorf("Given %+#v, wanted %+#v, got %+#v", tt.input, tt.output, output)

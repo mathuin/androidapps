@@ -7,56 +7,34 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
+
+	"github.com/mathuin/axmlParser"
 )
 
-var namere, versionre, labelre, iconre, imgre *regexp.Regexp
+var imgre *regexp.Regexp
 
 func init() {
-	namere = regexp.MustCompile("name='([^']*)'")
-	versionre = regexp.MustCompile("versionName='([^']*)'")
-	labelre = regexp.MustCompile("label='([^']*)'")
-	iconre = regexp.MustCompile("icon='([^']*)'")
 	imgre = regexp.MustCompile(".*\\.([a-z]*)$")
 }
 
-func extract_info(filename string) (name string, version string, label string, icon string, err error) {
-	// The correct way to extract this information requires writing a Go package which disassembles APKs.
-	// That's hard.
-	// For now, I'm just going to run "aapt dump badging <filename>" and extract what I need.
+func extractInfo(filename string) (name string, version string, label string, icon string, err error) {
 
-	// is this a real file?
-	f, err := os.Open(filename)
+	listener := new(axmlParser.AppNameListener)
+	_, err = axmlParser.ParseApk(filename, listener)
 	if err != nil {
 		return
 	}
-	f.Close()
-	path, err := exec.LookPath("aapt")
-	if err != nil {
-		return
-	}
-	aaptcmd := exec.Command(path, "dump", "badging", filename)
-	out, err := aaptcmd.Output()
-	if err != nil {
-		return
-	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "package: ") {
-			name = namere.FindStringSubmatch(line)[1]
-			version = versionre.FindStringSubmatch(line)[1]
-		} else if strings.HasPrefix(line, "application: ") {
-			label = labelre.FindStringSubmatch(line)[1]
-			icon = iconre.FindStringSubmatch(line)[1]
-		}
-	}
+	name = listener.PackageName
+	version = listener.VersionName
+	label = listener.ApplicationLabel
+	icon = listener.ApplicationIcon
+
 	return
 }
 
-func copy_files(filename string, name string, label string, icon string) {
+func copyFiles(filename string, name string, label string, icon string, err error) {
 	// icon's name is "media/icons/<label>.<suffix>"
 	imgsuffix := imgre.FindStringSubmatch(icon)[1]
 	icondest := fmt.Sprintf("media/icons/%s.%s", label, imgsuffix)
@@ -65,14 +43,25 @@ func copy_files(filename string, name string, label string, icon string) {
 
 	// copy icon from apk to icons directory
 	r, err := zip.OpenReader(filename)
-	checkErr(err, "zip.OpenReader() failed")
+	if err != nil {
+		err = fmt.Errorf("zip.OpenReader() failed on archive %s", filename)
+		return
+	}
 
 	for _, f := range r.File {
 		if f.Name == icon {
-			rc, err := f.Open()
-			checkErr(err, "f.Open() failed")
-			nf, err := os.Create(icondest)
-			checkErr(err, "os.Create() failed")
+			var rc io.ReadCloser
+			rc, err = f.Open()
+			if err != nil {
+				err = fmt.Errorf("f.Open() failed on file %s", f.Name)
+				return
+			}
+			var nf *os.File
+			nf, err = os.Create(icondest)
+			if err != nil {
+				err = fmt.Errorf("os.Create() failed on file %s", icondest)
+				return
+			}
 			defer nf.Close()
 			_, err = io.Copy(nf, rc)
 			checkErr(err, "io.Copy() failed")
@@ -86,7 +75,7 @@ func copy_files(filename string, name string, label string, icon string) {
 
 	// generate QR code in target directory.
 	qrdest := fmt.Sprintf("media/qrcodes/%s.%s", label, imgsuffix)
-	err = make_qrcode(name, qrdest)
+	err = makeQRCode(name, qrdest)
 	checkErr(err, "make_qrcode() failed")
 }
 

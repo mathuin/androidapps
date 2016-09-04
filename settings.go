@@ -6,14 +6,16 @@ import (
 	"os"
 )
 
+// Setting is the struct representing a setting.
 type Setting struct {
-	description  string // "hostname"
-	envvar       string // environment variable
-	flag_value   string // for flag.StringVar
-	flag_default string // for flag.StringVar
-	value        string // actual value
+	description string // "hostname"
+	envvar      string // environment variable
+	flagValue   string // for flag.StringVar
+	flagDefault string // for flag.StringVar
+	value       string // actual value
 }
 
+// NewSetting creates a new setting.
 func NewSetting(description, envvar string) (s *Setting, err error) {
 	if description == "" {
 		err = fmt.Errorf("missing description")
@@ -25,14 +27,14 @@ func NewSetting(description, envvar string) (s *Setting, err error) {
 	return
 }
 
-func (s *Setting) set_value(key string) (err error) {
+func (s *Setting) setValue(key string) (err error) {
 	if s.envvar != "" {
 		s.value = os.Getenv(s.envvar)
 	} else {
 		err = fmt.Errorf("no environment variable for %s found", key)
 	}
-	if s.flag_value != "" {
-		s.value = s.flag_value
+	if s.flagValue != "" {
+		s.value = s.flagValue
 	}
 	if s.value == "" && err == nil {
 		err = fmt.Errorf("no value for %s found -- set environment variable %s or use flag", key, s.envvar)
@@ -40,9 +42,9 @@ func (s *Setting) set_value(key string) (err error) {
 	return
 }
 
-func apply_settings(settings map[string]*Setting) {
+func applySettings(settings map[string]*Setting) {
 	for key, s := range settings {
-		err := s.set_value(key)
+		err := s.setValue(key)
 		checkErr(err, "set_value failed")
 	}
 }
@@ -65,6 +67,6 @@ func init() {
 
 	// Define flags.
 	for key, s := range settings {
-		flag.StringVar(&s.flag_value, key, s.flag_default, s.description)
+		flag.StringVar(&s.flagValue, key, s.flagDefault, s.description)
 	}
 }

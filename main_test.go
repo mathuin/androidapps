@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var exec_cmd_tests = []struct {
+var execCmdTests = []struct {
 	// given args like "./androidapps reset", capture stdout, stderr, and err
 	cmdargs []string
 	stdout  string
@@ -14,12 +14,12 @@ var exec_cmd_tests = []struct {
 	err     error
 }{
 	{[]string{"reset"}, "", "", nil},
-	{[]string{"boo"}, "", "", fmt.Errorf("bad args: ", []string{"boo"})},
+	{[]string{"boo"}, "", "", fmt.Errorf("bad args: %s", []string{"boo"})},
 }
 
-func Test_exec_cmd(t *testing.T) {
-	for _, tt := range exec_cmd_tests {
-		err := exec_cmd(tt.cmdargs)
+func Test_execCmd(t *testing.T) {
+	for _, tt := range execCmdTests {
+		err := execCmd(tt.cmdargs)
 		if !reflect.DeepEqual(err, tt.err) {
 			t.Errorf("Given cmdargs=%+#v, wanted err %+#v, got err %+#v", tt.cmdargs, tt.err, err)
 		}

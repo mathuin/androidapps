@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/qpliu/qrencode-go/qrencode"
 	"image/png"
 	"os"
+
+	"github.com/qpliu/qrencode-go/qrencode"
 )
 
-func make_qrcode(name, filename string) error {
+func makeQRCode(name, filename string) error {
 	msg := fmt.Sprintf("market://search?q=pname:%s", name)
 	grid, err := qrencode.Encode(msg, qrencode.ECLevelQ)
 	checkErr(err, "Encode() failed")

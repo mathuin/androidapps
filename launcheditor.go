@@ -27,13 +27,13 @@ func launcheditor(filename string) error {
 	return cmd.Wait()
 }
 
-var comment_header []byte
-var line_terminator []byte
+var commentHeader []byte
+var lineTerminator []byte
 var space []byte
 
 func init() {
-	comment_header = []byte{'#'}
-	line_terminator = []byte{'\n'}
+	commentHeader = []byte{'#'}
+	lineTerminator = []byte{'\n'}
 	space = []byte{' '}
 }
 
@@ -45,7 +45,7 @@ func createfile(header string, content string) string {
 	text = strings.Join([]string{header, content}, "\n")
 	if text != "" {
 		for _, text := range split(text, 72) {
-			line := [][]byte{comment_header, []byte(text), line_terminator}
+			line := [][]byte{commentHeader, []byte(text), lineTerminator}
 			f.Write(bytes.Join(line, space))
 		}
 	}
@@ -56,8 +56,8 @@ func retrievestring(filename string) string {
 	var linebuf bytes.Buffer
 	buf, err := ioutil.ReadFile(filename)
 	checkErr(err, "ioutil.ReadFile failed")
-	for _, line := range bytes.Split(buf, line_terminator) {
-		if !bytes.HasPrefix(line, comment_header) {
+	for _, line := range bytes.Split(buf, lineTerminator) {
+		if !bytes.HasPrefix(line, commentHeader) {
 			linebuf.Write(append(line))
 		}
 	}
@@ -87,7 +87,7 @@ func isbreak(b byte) bool {
 func findsplit(s string, near int) int {
 	const RAGGEDNESS = 10
 	bound := max(0, near-RAGGEDNESS)
-	for i := near; i > bound; i -= 1 {
+	for i := near; i > bound; i-- {
 		if isbreak(s[i]) {
 			return i + 1
 		}

@@ -7,13 +7,13 @@ import (
 	"os"
 )
 
-var init_funcs []func()
+var initFuncs []func()
 
 type subcommand func([]string) error
 
 var subcommands map[string]subcommand
 
-// not tested
+// Usage has not yet been tested
 func Usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
@@ -33,10 +33,10 @@ func init() {
 	}
 }
 
-func exec_cmd(args []string) error {
+func execCmd(args []string) error {
 	if command := subcommands[args[0]]; command != nil {
 		// Initialize submodules, then run command.
-		for _, value := range init_funcs {
+		for _, value := range initFuncs {
 			value()
 		}
 
@@ -47,9 +47,8 @@ func exec_cmd(args []string) error {
 		err := command(args)
 		checkErr(err, "command failed")
 		return nil
-	} else {
-		return fmt.Errorf("bad args: ", args)
 	}
+	return fmt.Errorf("bad args: %s", args)
 }
 
 // not tested
@@ -57,9 +56,9 @@ func main() {
 	// Parse flags!
 	flag.Parse()
 
-	apply_settings(settings)
+	applySettings(settings)
 
-	if err := exec_cmd(flag.Args()); err != nil {
+	if err := execCmd(flag.Args()); err != nil {
 		Usage()
 	}
 }

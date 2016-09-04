@@ -11,16 +11,16 @@ func check(t *testing.T, expected, actual string) {
 	}
 }
 
-var extract_info_tests = []struct {
+var extractInfoTests = []struct {
 	name, version, label, icon, filename string
 	err                                  error
 }{
 	{"org.twilley.android.firstapp", "1.0", "FirstApp", "res/drawable-mdpi-v4/ic_launcher.png", "./test/FirstApp10.apk", nil},
 }
 
-func Test_extract_info(t *testing.T) {
-	for _, tt := range extract_info_tests {
-		name, version, label, icon, err := extract_info(tt.filename)
+func Test_extractInfo(t *testing.T) {
+	for _, tt := range extractInfoTests {
+		name, version, label, icon, err := extractInfo(tt.filename)
 		check(t, tt.name, name)
 		check(t, tt.version, version)
 		check(t, tt.label, label)

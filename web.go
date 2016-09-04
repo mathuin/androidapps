@@ -22,6 +22,7 @@ func subtract(a, b int) int {
 	return a - b
 }
 
+// Page represents a new page -- content per developer
 type Page struct {
 	Developer map[string]string
 	Content   interface{}
@@ -30,7 +31,7 @@ type Page struct {
 var layout *template.Template
 var dev map[string]string
 
-func web_init() {
+func webInit() {
 	dev = map[string]string{"name": settings["name"].value, "email": settings["email"].value}
 
 	funcmap := template.FuncMap{
@@ -46,10 +47,10 @@ func web_init() {
 }
 
 func init() {
-	init_funcs = append(init_funcs, web_init)
+	initFuncs = append(initFuncs, webInit)
 }
 
-// not tested
+// ServeIndex has not yet been tested
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	// only enabled apps here
 	apps := applist(true)
@@ -60,12 +61,12 @@ func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	checkErr(err, "layout.Execute() failed")
 }
 
-// not tested
+// ServeStatic has not yet been tested
 func ServeStatic(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
 
-// not tested
+// ServeMedia has not yet been tested
 func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
